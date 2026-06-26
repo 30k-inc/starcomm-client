@@ -15,6 +15,9 @@ jobs:
       contents: write
       pull-requests: write
       id-token: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,7 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: pnpm
           registry-url: "https://registry.npmjs.org"
 
@@ -41,5 +44,3 @@ jobs:
           publish: pnpm changeset publish --provenance
           title: "chore: version package"
           commit: "chore: version package"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
