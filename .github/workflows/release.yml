@@ -8,6 +8,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -40,6 +43,3 @@ jobs:
           publish: pnpm changeset publish --provenance
           title: "chore: version package"
           commit: "chore: version package"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ""

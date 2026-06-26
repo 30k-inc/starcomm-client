@@ -1,5 +1,5 @@
 {
-  "changelog": "@changesets/cli/changelog",
+  "changelog": ["@changesets/changelog-github", { "repo": "30k-inc/starcomm-client" }],
   "commit": false,
   "fixed": [],
   "linked": [],
