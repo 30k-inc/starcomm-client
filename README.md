@@ -42,13 +42,7 @@ Methods are organized into namespaced resources:
 
 ## Docs
 
-Full API documentation is generated from JSDoc using [TypeDoc](https://typedoc.org):
-
-```bash
-pnpm run docs
-```
-
-Output is written to `docs/`. Open `docs/index.html` to browse.
+Full API documentation: [30k-inc.github.io/starcomm-client](https://30k-inc.github.io/starcomm-client/index.html)
 
 ## Error Handling
 
