@@ -18,7 +18,10 @@
     "typecheck": "tsc --noEmit",
     "docs": "typedoc",
     "lint": "oxlint src/",
-    "fmt": "oxfmt --write src/"
+    "fmt": "oxfmt --write src/",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "pnpm run build && changeset publish"
   },
   "keywords": [
     "star-comms",
@@ -42,5 +45,9 @@
     "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
 }
