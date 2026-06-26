@@ -23,23 +23,6 @@ await client.assignments.set("discord_user_id", 1);
 await client.comms.sendAcars({ text: "Fleet departing!" });
 ```
 
-## Sub-Resources
-
-Methods are organized into namespaced resources:
-
-| Resource | Purpose |
-|----------|---------|
-| `client.status` | Health, status, roster, embed |
-| `client.assignments` | Assign/unassign users to nets |
-| `client.nets` | Create, rename, remove nets |
-| `client.operations` | Open/close operation, features, rules |
-| `client.presets` | Save/apply/remove operation presets |
-| `client.comms` | ACARS broadcasts, disconnect clients |
-| `client.metrics` | Performance metrics, audit log, debug |
-| `client.webhooks` | Register/remove event webhooks |
-| `client.archive` | Net archive CRUD + sync status |
-| `client.stream` | SSE event stream, public token |
-
 ## Docs
 
 Full API documentation: [30k-inc.github.io/starcomm-client](https://30k-inc.github.io/starcomm-client/index.html)
@@ -68,7 +51,38 @@ try {
 | `ownerApiKey` | `string` | — | Owner key (`scok_...`) |
 | `shardToken` | `string?` | — | Shard token for debug endpoint |
 | `timeoutMs` | `number?` | `10000` | Request timeout |
+| `connectTimeoutMs` | `number?` | `30000` | Connection timeout for streaming endpoints |
 | `fetch` | `typeof fetch?` | `globalThis.fetch` | Custom fetch impl |
+
+## Event Stream & Reconnection
+
+The client includes a built-in SSE event stream with automatic reconnection:
+
+```typescript
+// Listen for events
+client.on("user.joined", (event) => {
+  console.log(event.data.displayName, "connected");
+});
+
+// Lifecycle hooks
+client.onLifecycle("stream.disconnected", ({ reason }) => {
+  console.warn("Stream lost:", reason);
+});
+client.onLifecycle("stream.reconnected", ({ attempt }) => {
+  console.log("Back online after", attempt, "attempts");
+});
+
+// Connect with reconnection options (all optional)
+await client.connect({
+  autoReconnect: true,   // default: true
+  initialDelayMs: 1000,  // default: 1000
+  maxDelayMs: 30000,     // default: 30000
+  maxAttempts: Infinity,  // default: Infinity
+});
+
+// Intentional disconnect (won't trigger reconnection)
+client.disconnect();
+```
 
 ## License
 
