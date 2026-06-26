@@ -1,58 +1,26 @@
-import { StarCommsError } from "./error";
-import type {
-  AcarsPayload,
-  AcarsResult,
-  ArchiveListQuery,
-  ArchiveUpsertPayload,
-  AssignmentAction,
-  BulkAssignmentPayload,
-  CreateNetPayload,
-  DisconnectClientPayload,
-  DisconnectClientResult,
-  OperationPreset,
-  PublicTokenResponse,
-  RegisterWebhookPayload,
-  RemoveNetPayload,
-  RenameNetPayload,
-  SetFeaturesPayload,
-  SetOperationPayload,
-  SetRulesPayload,
-  ShardArchiveDeleteResponse,
-  ShardArchiveEntryResponse,
-  ShardArchiveListResponse,
-  ShardArchiveRestoreResponse,
-  ShardArchiveSyncStatusResponse,
-  ShardArchiveUpsertResponse,
-  ShardAssignmentResult,
-  ShardAssignmentsResponse,
-  ShardAuditResponse,
-  ShardBulkAssignmentResult,
-  ShardEmbedStatusResponse,
-  ShardFeaturesResponse,
-  ShardHealthResponse,
-  ShardMetricsResponse,
-  ShardOpenApiResponse,
-  ShardPresetsResponse,
-  ShardRosterResponse,
-  ShardRulesResponse,
-  ShardStatusResponse,
-  ShardWebhooksResponse,
-  TemporaryAssignmentPayload,
-  TemporaryAssignmentResult,
-} from "./types";
+import { BaseClient, type StarCommsClientConfig } from "./base";
+import {
+  StatusResource,
+  AssignmentsResource,
+  NetsResource,
+  OperationsResource,
+  PresetsResource,
+  CommsResource,
+  MetricsResource,
+  WebhooksResource,
+  ArchiveResource,
+  StreamResource,
+  PublicNetResource,
+} from "./resources";
+import type { OwnerEvent, OwnerEventMap, OwnerEventType } from "./types/stream";
 
-export interface StarCommsClientConfig {
-  /** Base URL of the shard (e.g., "http://216.114.75.146:25588"). No trailing slash. */
-  baseUrl: string;
-  /** Owner API key (scok_...) for authenticated endpoints. */
-  ownerApiKey: string;
-  /** Optional shard token (scsh_...) for the /debug endpoint. */
-  shardToken?: string;
-  /** Request timeout in milliseconds (default: 10000). */
-  timeoutMs?: number;
-  /** Optional custom fetch implementation (default: global fetch). */
-  fetch?: typeof fetch;
-}
+export type { StarCommsClientConfig } from "./base";
+
+/**
+ * Handler for wildcard event listeners.
+ * @category Stream
+ */
+export type WildcardHandler = (event: OwnerEvent) => void;
 
 /**
  * Star Comms Shard Owner API Client.
@@ -60,348 +28,201 @@ export interface StarCommsClientConfig {
  * A framework-agnostic TypeScript client for interacting with a Star Comms shard.
  * Uses the native `fetch` API (Node 18+, Bun, Deno, or browser).
  *
+ * Supports event-emitter style event handling with Type Safety:
+ *
  * @example
  * ```typescript
- * import { StarCommsClient } from "@starcomms/client";
+ * import { StarCommsClient } from "@30k/starcomm-client";
  *
  * const client = new StarCommsClient({
- *   baseUrl: "http://216.114.75.146:25588",
+ *   baseUrl: "http://your-shard:1234",
  *   ownerApiKey: "scok_your_key_here",
  * });
  *
- * const status = await client.getStatus();
- * console.log(status.nets);
+ * client.on("user.joined", (event) => {
+ *   console.log(`${event.data.displayName} connected`);
+ * });
  *
- * await client.assignNet("discord_user_id", 1);
- * await client.sendAcars({ text: "Fleet departing!" });
+ * client.on("ptt.start", (event) => {
+ *   console.log(`${event.data.userId} transmitting on net ${event.data.netId}`);
+ * });
+ *
+ * await client.connect(); // opens SSE stream and starts dispatching events
+ *
+ * // Resource calls
+ * const status = await client.status.get();
+ * await client.assignments.set("discord_user_id", 1);
+ *
+ * // Later: disconnect
+ * client.disconnect();
  * ```
  */
 export class StarCommsClient {
-  private readonly baseUrl: string;
-  private readonly ownerApiKey: string;
-  private readonly shardToken?: string;
-  private readonly timeoutMs: number;
-  private readonly _fetch: typeof fetch;
+  /** Shard health, status, roster, and embed endpoints. */
+  readonly status: StatusResource;
+  /** Net assignment operations (assign, unassign, bulk, temporary). */
+  readonly assignments: AssignmentsResource;
+  /** Voice net management (create, rename, remove). */
+  readonly nets: NetsResource;
+  /** Operation lifecycle, feature flags, and auto-assignment rules. */
+  readonly operations: OperationsResource;
+  /** Operation preset management (save, apply, remove). */
+  readonly presets: PresetsResource;
+  /** Communication operations (ACARS alerts, client disconnect). */
+  readonly comms: CommsResource;
+  /** Shard metrics, Prometheus export, audit log, and debug. */
+  readonly metrics: MetricsResource;
+  /** Webhook registration and management. */
+  readonly webhooks: WebhooksResource;
+  /** Net archive CRUD and sync status. */
+  readonly archive: ArchiveResource;
+  /** Event streaming (SSE) and public token management. */
+  readonly stream: StreamResource;
+  /** Public net feature management (show, hide, remove, restore). */
+  readonly publicNet: PublicNetResource;
+
+  private readonly listeners = new Map<string, Set<(event: never) => void>>();
+  private readonly wildcardListeners = new Set<WildcardHandler>();
+  private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  private consuming = false;
 
   constructor(config: StarCommsClientConfig) {
-    this.baseUrl = config.baseUrl.replace(/\/+$/, "");
-    this.ownerApiKey = config.ownerApiKey;
-    this.shardToken = config.shardToken;
-    this.timeoutMs = config.timeoutMs ?? 10_000;
-    this._fetch = config.fetch ?? globalThis.fetch;
+    const http = new BaseClient(config);
+
+    this.status = new StatusResource(http);
+    this.assignments = new AssignmentsResource(http);
+    this.nets = new NetsResource(http);
+    this.operations = new OperationsResource(http);
+    this.presets = new PresetsResource(http);
+    this.comms = new CommsResource(http);
+    this.metrics = new MetricsResource(http);
+    this.webhooks = new WebhooksResource(http);
+    this.archive = new ArchiveResource(http);
+    this.stream = new StreamResource(http);
+    this.publicNet = new PublicNetResource(http);
   }
 
-  // ─── Public Endpoints (unauthenticated) ─────────────────────────────
-
-  async getHealth(): Promise<ShardHealthResponse> {
-    return this.get<ShardHealthResponse>("/health");
-  }
-
-  async getOpenApiSpec(): Promise<ShardOpenApiResponse> {
-    return this.get<ShardOpenApiResponse>("/api/v1/openapi.json");
-  }
-
-  async getEmbedStatus(token: string): Promise<ShardEmbedStatusResponse> {
-    return this.get<ShardEmbedStatusResponse>(`/api/v1/embed/status?token=${encodeURIComponent(token)}`);
-  }
-
-  async getEmbedWidget(token: string): Promise<string> {
-    const url = `${this.baseUrl}/api/v1/embed/widget?token=${encodeURIComponent(token)}`;
-    const response = await this._fetch(url, {
-      method: "GET",
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-    if (!response.ok) {
-      throw new StarCommsError(response.status, `Embed widget failed: HTTP ${response.status}`);
+  /**
+   * Register a type-safe handler for a specific event type.
+   *
+   * @example
+   * ```typescript
+   * client.on("user.joined", (event) => {
+   *   event.data.userId;  // string
+   *   event.data.nets;    // number[]
+   * });
+   * ```
+   */
+  on<K extends OwnerEventType>(event: K, handler: (event: OwnerEventMap[K]) => void): this;
+  /** Register a handler for all events. */
+  on(event: "*", handler: WildcardHandler): this;
+  on(event: string, handler: (event: never) => void): this {
+    if (event === "*") {
+      this.wildcardListeners.add(handler as WildcardHandler);
+    } else {
+      let set = this.listeners.get(event);
+      if (!set) {
+        set = new Set();
+        this.listeners.set(event, set);
+      }
+      set.add(handler);
     }
-    return response.text();
+    return this;
   }
 
-  // ─── Status & Roster ────────────────────────────────────────────────
-
-  async getStatus(): Promise<ShardStatusResponse> {
-    return this.ownerGet<ShardStatusResponse>("/api/v1/status");
-  }
-
-  async getRoster(): Promise<ShardRosterResponse> {
-    return this.ownerGet<ShardRosterResponse>("/api/v1/roster");
-  }
-
-  // ─── Assignments ────────────────────────────────────────────────────
-
-  async getAssignments(): Promise<ShardAssignmentsResponse> {
-    return this.ownerGet<ShardAssignmentsResponse>("/api/v1/assignments");
-  }
-
-  async assignNet(userId: string, netId: number, action: "assign" | "unassign" = "assign"): Promise<ShardAssignmentResult> {
-    const body: AssignmentAction = { userId, netId, action };
-    return this.ownerPost<ShardAssignmentResult>("/api/v1/assignments", body);
-  }
-
-  async bulkAssign(payload: BulkAssignmentPayload): Promise<ShardBulkAssignmentResult> {
-    return this.ownerPost<ShardBulkAssignmentResult>("/api/v1/assignments/bulk", payload);
-  }
-
-  async temporaryAssign(payload: TemporaryAssignmentPayload): Promise<TemporaryAssignmentResult> {
-    return this.ownerPost<TemporaryAssignmentResult>("/api/v1/assignments/temporary", payload);
-  }
-
-  // ─── ACARS Broadcast ────────────────────────────────────────────────
-
-  async sendAcars(payload: AcarsPayload): Promise<AcarsResult> {
-    return this.ownerPost<AcarsResult>("/api/v1/acars", payload);
-  }
-
-  // ─── Nets ───────────────────────────────────────────────────────────
-
-  async createNet(payload: CreateNetPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/nets", payload);
-  }
-
-  async renameNet(payload: RenameNetPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/nets/rename", payload);
-  }
-
-  async removeNet(payload: RemoveNetPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/nets/remove", payload);
-  }
-
-  async removeNetByRef(ref: string): Promise<Record<string, unknown>> {
-    return this.ownerDelete<Record<string, unknown>>(`/api/v1/nets/${encodeURIComponent(ref)}`);
-  }
-
-  // ─── Operation ──────────────────────────────────────────────────────
-
-  async setOperation(payload: SetOperationPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/operation", payload);
-  }
-
-  // ─── Features ───────────────────────────────────────────────────────
-
-  async getFeatures(): Promise<ShardFeaturesResponse> {
-    return this.ownerGet<ShardFeaturesResponse>("/api/v1/features");
-  }
-
-  async setFeatures(payload: SetFeaturesPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/features", payload);
-  }
-
-  // ─── Rules ──────────────────────────────────────────────────────────
-
-  async getRules(): Promise<ShardRulesResponse> {
-    return this.ownerGet<ShardRulesResponse>("/api/v1/rules");
-  }
-
-  async setRules(payload: SetRulesPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/rules", payload);
-  }
-
-  // ─── Presets ────────────────────────────────────────────────────────
-
-  async getPresets(): Promise<ShardPresetsResponse> {
-    return this.ownerGet<ShardPresetsResponse>("/api/v1/presets");
-  }
-
-  async savePreset(preset: OperationPreset): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/presets", preset);
-  }
-
-  async applyPreset(name: string): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>(`/api/v1/presets/${encodeURIComponent(name)}/apply`, {});
-  }
-
-  async removePreset(name: string): Promise<Record<string, unknown>> {
-    return this.ownerDelete<Record<string, unknown>>(`/api/v1/presets/${encodeURIComponent(name)}`);
-  }
-
-  // ─── Clients ────────────────────────────────────────────────────────
-
-  async disconnectClient(payload: DisconnectClientPayload): Promise<DisconnectClientResult> {
-    return this.ownerPost<DisconnectClientResult>("/api/v1/clients/disconnect", payload);
-  }
-
-  // ─── Metrics ────────────────────────────────────────────────────────
-
-  async getMetrics(sinceMinutes?: number): Promise<ShardMetricsResponse> {
-    const query = sinceMinutes ? `?sinceMinutes=${sinceMinutes}` : "";
-    return this.ownerGet<ShardMetricsResponse>(`/api/v1/metrics${query}`);
-  }
-
-  async getPrometheusMetrics(): Promise<string> {
-    this.requireOwnerKey();
-    const url = `${this.baseUrl}/api/v1/metrics/prometheus`;
-    const response = await this._fetch(url, {
-      method: "GET",
-      headers: { authorization: `Bearer ${this.ownerApiKey}` },
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-    if (!response.ok) {
-      throw new StarCommsError(response.status, `Prometheus metrics failed: HTTP ${response.status}`);
+  /** Remove a previously registered handler. */
+  off<K extends OwnerEventType>(event: K, handler: (event: OwnerEventMap[K]) => void): this;
+  off(event: "*", handler: WildcardHandler): this;
+  off(event: string, handler: (event: never) => void): this {
+    if (event === "*") {
+      this.wildcardListeners.delete(handler as WildcardHandler);
+    } else {
+      this.listeners.get(event)?.delete(handler);
     }
-    return response.text();
+    return this;
   }
 
-  // ─── Webhooks ───────────────────────────────────────────────────────
-
-  async getWebhooks(): Promise<ShardWebhooksResponse> {
-    return this.ownerGet<ShardWebhooksResponse>("/api/v1/webhooks");
+  /**
+   * Opens the SSE event stream and begins dispatching events to registered handlers.
+   * Call this after registering your `.on()` handlers.
+   *
+   * @throws {StarCommsError} If the connection fails.
+   */
+  async connect(): Promise<void> {
+    if (this.consuming) return;
+    const response = await this.stream.openRaw();
+    this.reader = response.body!.getReader();
+    this.consuming = true;
+    this.consume();
   }
 
-  async registerWebhook(payload: RegisterWebhookPayload): Promise<Record<string, unknown>> {
-    return this.ownerPost<Record<string, unknown>>("/api/v1/webhooks", payload);
+  /** Whether the event stream is currently connected. */
+  get connected(): boolean {
+    return this.consuming;
   }
 
-  async removeWebhook(id: string): Promise<Record<string, unknown>> {
-    return this.ownerDelete<Record<string, unknown>>(`/api/v1/webhooks/${encodeURIComponent(id)}`);
+  /**
+   * Closes the SSE event stream. REST methods remain usable.
+   */
+  disconnect(): void {
+    this.consuming = false;
+    this.reader?.cancel().catch(() => {});
+    this.reader = null;
   }
 
-  // ─── Audit ──────────────────────────────────────────────────────────
+  private async consume(): Promise<void> {
+    const decoder = new TextDecoder();
+    let buffer = "";
 
-  async getAudit(limit?: number): Promise<ShardAuditResponse> {
-    const query = limit ? `?limit=${limit}` : "";
-    return this.ownerGet<ShardAuditResponse>(`/api/v1/audit${query}`);
-  }
-
-  // ─── Public Token ───────────────────────────────────────────────────
-
-  async getPublicToken(): Promise<PublicTokenResponse> {
-    return this.ownerGet<PublicTokenResponse>("/api/v1/public-token");
-  }
-
-  // ─── Debug ──────────────────────────────────────────────────────────
-
-  async getDebug(): Promise<Record<string, unknown>> {
-    if (!this.shardToken) {
-      throw new StarCommsError(500, "Shard token not configured. Cannot call /debug.");
-    }
-    return this.get<Record<string, unknown>>("/debug", this.shardToken);
-  }
-
-  // ─── Archive ────────────────────────────────────────────────────────
-
-  async getArchive(query?: ArchiveListQuery): Promise<ShardArchiveListResponse> {
-    const params = new URLSearchParams();
-    if (query?.tag) params.set("tag", query.tag);
-    if (query?.search) params.set("search", query.search);
-    if (query?.limit) params.set("limit", String(query.limit));
-    const qs = params.toString();
-    return this.ownerGet<ShardArchiveListResponse>(`/api/v1/archive${qs ? `?${qs}` : ""}`);
-  }
-
-  async getArchiveEntry(uid: string): Promise<ShardArchiveEntryResponse> {
-    return this.ownerGet<ShardArchiveEntryResponse>(`/api/v1/archive/${encodeURIComponent(uid)}`);
-  }
-
-  async upsertArchive(payload: ArchiveUpsertPayload): Promise<ShardArchiveUpsertResponse> {
-    return this.ownerPost<ShardArchiveUpsertResponse>("/api/v1/archive", payload);
-  }
-
-  async updateArchiveEntry(uid: string, payload: ArchiveUpsertPayload): Promise<ShardArchiveUpsertResponse> {
-    return this.ownerPost<ShardArchiveUpsertResponse>(`/api/v1/archive/${encodeURIComponent(uid)}`, payload);
-  }
-
-  async deleteArchiveEntry(uid: string): Promise<ShardArchiveDeleteResponse> {
-    return this.ownerDelete<ShardArchiveDeleteResponse>(`/api/v1/archive/${encodeURIComponent(uid)}`);
-  }
-
-  async restoreArchiveEntry(uid: string): Promise<ShardArchiveRestoreResponse> {
-    return this.ownerPost<ShardArchiveRestoreResponse>(`/api/v1/archive/${encodeURIComponent(uid)}/restore`, {});
-  }
-
-  async getArchiveSyncStatus(): Promise<ShardArchiveSyncStatusResponse> {
-    return this.ownerGet<ShardArchiveSyncStatusResponse>("/api/v1/archive/sync/status");
-  }
-
-  // ─── Event Stream ───────────────────────────────────────────────────
-
-  async openEventStream(): Promise<Response> {
-    this.requireOwnerKey();
-    const url = `${this.baseUrl}/api/v1/stream`;
-    const response = await this._fetch(url, {
-      method: "GET",
-      headers: {
-        accept: "text/event-stream",
-        authorization: `Bearer ${this.ownerApiKey}`,
-      },
-    });
-    if (!response.ok) {
-      throw new StarCommsError(response.status, `Event stream failed: HTTP ${response.status}`);
-    }
-    return response;
-  }
-
-  // ─── Internal HTTP helpers ──────────────────────────────────────────
-
-  private async get<T>(path: string, bearerToken?: string): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    const headers: Record<string, string> = { accept: "application/json" };
-    if (bearerToken) headers.authorization = `Bearer ${bearerToken}`;
-
-    const response = await this._fetch(url, {
-      method: "GET",
-      headers,
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-
-    return this.handleResponse<T>(response);
-  }
-
-  private async ownerGet<T>(path: string): Promise<T> {
-    this.requireOwnerKey();
-    return this.get<T>(path, this.ownerApiKey);
-  }
-
-  private async ownerPost<T>(path: string, body: unknown): Promise<T> {
-    this.requireOwnerKey();
-    const url = `${this.baseUrl}${path}`;
-    const response = await this._fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-        authorization: `Bearer ${this.ownerApiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-    return this.handleResponse<T>(response);
-  }
-
-  private async ownerDelete<T>(path: string): Promise<T> {
-    this.requireOwnerKey();
-    const url = `${this.baseUrl}${path}`;
-    const response = await this._fetch(url, {
-      method: "DELETE",
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${this.ownerApiKey}`,
-      },
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-    return this.handleResponse<T>(response);
-  }
-
-  private async handleResponse<T>(response: Response): Promise<T> {
-    const text = await response.text();
-    let payload: unknown;
     try {
-      payload = text ? JSON.parse(text) : {};
+      while (this.consuming && this.reader) {
+        const { done, value } = await this.reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop()!;
+
+        for (const block of blocks) {
+          const event = parseSSEBlock(block);
+          if (event) this.emit(event);
+        }
+      }
     } catch {
-      payload = { error: text };
+      // Stream closed or network error
+    } finally {
+      this.consuming = false;
+      this.reader = null;
     }
-
-    if (!response.ok) {
-      const errorMessage = (payload as Record<string, unknown>)?.error as string
-        ?? `Star Comms shard returned HTTP ${response.status}`;
-      throw new StarCommsError(response.status, errorMessage);
-    }
-
-    return payload as T;
   }
 
-  private requireOwnerKey(): void {
-    if (!this.ownerApiKey) {
-      throw new StarCommsError(500, "Owner API key not configured.");
+  private emit(event: OwnerEvent): void {
+    const handlers = this.listeners.get(event.type);
+    if (handlers) {
+      for (const handler of handlers) (handler as (event: OwnerEvent) => void)(event);
     }
+    for (const handler of this.wildcardListeners) handler(event);
+  }
+}
+
+function parseSSEBlock(block: string): OwnerEvent | null {
+  let eventType = "";
+  let data = "";
+
+  for (const line of block.split("\n")) {
+    if (line.startsWith(":")) continue;
+    if (line.startsWith("event: ")) {
+      eventType = line.slice(7);
+    } else if (line.startsWith("data: ")) {
+      data = line.slice(6);
+    }
+  }
+
+  if (!eventType || !data) return null;
+
+  try {
+    return JSON.parse(data) as OwnerEvent;
+  } catch {
+    return null;
   }
 }

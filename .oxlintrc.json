@@ -1,0 +1,10 @@
+{
+  "plugins": null,
+  "categories": {},
+  "rules": {},
+  "env": {
+    "builtin": true
+  },
+  "globals": {},
+  "ignorePatterns": ["dist", "node_modules", "raw"]
+}

@@ -1,0 +1,30 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "@30k/starcomm-client",
+  "readme": "README.md",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "categorizeByGroup": false,
+  "defaultCategory": "Client",
+  "categoryOrder": [
+    "Client",
+    "Resources",
+    "Status",
+    "Assignments",
+    "Nets",
+    "Operations",
+    "Presets",
+    "Comms",
+    "Metrics",
+    "Webhooks",
+    "Archive",
+    "Stream",
+    "Public Net",
+    "Common",
+    "Internals"
+  ],
+  "navigation": {
+    "includeCategories": true
+  }
+}
