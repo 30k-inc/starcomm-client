@@ -7,7 +7,10 @@ import type { ShardAuditResponse, ShardMetricsResponse } from "../types";
  * @category Resources
  */
 export class MetricsResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
 
   /**
    * Fetches shard performance metrics.
@@ -15,13 +18,13 @@ export class MetricsResource {
    */
   async get(sinceMinutes?: number): Promise<ShardMetricsResponse> {
     const query = sinceMinutes ? `?sinceMinutes=${sinceMinutes}` : "";
-    return this.http.ownerGet<ShardMetricsResponse>(`/api/v1/metrics${query}`);
+    return this.#http.ownerGet<ShardMetricsResponse>(`/api/v1/metrics${query}`);
   }
 
   /** Fetches metrics in Prometheus exposition format (text/plain). */
   async prometheus(): Promise<string> {
-    this.http.requireOwnerKey();
-    return this.http.getRawText("/api/v1/metrics/prometheus", this.http.ownerApiKey);
+    this.#http.requireOwnerKey();
+    return this.#http.getRawText("/api/v1/metrics/prometheus", this.#http.ownerApiKey);
   }
 
   /**
@@ -30,7 +33,7 @@ export class MetricsResource {
    */
   async getAudit(limit?: number): Promise<ShardAuditResponse> {
     const query = limit ? `?limit=${limit}` : "";
-    return this.http.ownerGet<ShardAuditResponse>(`/api/v1/audit${query}`);
+    return this.#http.ownerGet<ShardAuditResponse>(`/api/v1/audit${query}`);
   }
 
   /**
@@ -38,9 +41,9 @@ export class MetricsResource {
    * @throws {StarCommsError} If `shardToken` was not provided in config.
    */
   async getDebug(): Promise<Record<string, unknown>> {
-    if (!this.http.shardToken) {
+    if (!this.#http.shardToken) {
       throw new StarCommsError(500, "Shard token not configured. Cannot call /debug.");
     }
-    return this.http.get<Record<string, unknown>>("/debug", this.http.shardToken);
+    return this.#http.get<Record<string, unknown>>("/debug", this.#http.shardToken);
   }
 }

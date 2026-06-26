@@ -81,10 +81,10 @@ export class StarCommsClient {
   /** Public net feature management (show, hide, remove, restore). */
   readonly publicNet: PublicNetResource;
 
-  private readonly listeners = new Map<string, Set<(event: never) => void>>();
-  private readonly wildcardListeners = new Set<WildcardHandler>();
-  private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
-  private consuming = false;
+  readonly #listeners = new Map<string, Set<(event: never) => void>>();
+  readonly #wildcardListeners = new Set<WildcardHandler>();
+  #reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  #consuming = false;
 
   constructor(config: StarCommsClientConfig) {
     const http = new BaseClient(config);
@@ -118,12 +118,12 @@ export class StarCommsClient {
   on(event: "*", handler: WildcardHandler): this;
   on(event: string, handler: (event: never) => void): this {
     if (event === "*") {
-      this.wildcardListeners.add(handler as WildcardHandler);
+      this.#wildcardListeners.add(handler as WildcardHandler);
     } else {
-      let set = this.listeners.get(event);
+      let set = this.#listeners.get(event);
       if (!set) {
         set = new Set();
-        this.listeners.set(event, set);
+        this.#listeners.set(event, set);
       }
       set.add(handler);
     }
@@ -135,9 +135,9 @@ export class StarCommsClient {
   off(event: "*", handler: WildcardHandler): this;
   off(event: string, handler: (event: never) => void): this {
     if (event === "*") {
-      this.wildcardListeners.delete(handler as WildcardHandler);
+      this.#wildcardListeners.delete(handler as WildcardHandler);
     } else {
-      this.listeners.get(event)?.delete(handler);
+      this.#listeners.get(event)?.delete(handler);
     }
     return this;
   }
@@ -149,34 +149,34 @@ export class StarCommsClient {
    * @throws {StarCommsError} If the connection fails.
    */
   async connect(): Promise<void> {
-    if (this.consuming) return;
+    if (this.#consuming) return;
     const response = await this.stream.openRaw();
-    this.reader = response.body!.getReader();
-    this.consuming = true;
-    this.consume();
+    this.#reader = response.body!.getReader();
+    this.#consuming = true;
+    this.#consume();
   }
 
   /** Whether the event stream is currently connected. */
   get connected(): boolean {
-    return this.consuming;
+    return this.#consuming;
   }
 
   /**
    * Closes the SSE event stream. REST methods remain usable.
    */
   disconnect(): void {
-    this.consuming = false;
-    this.reader?.cancel().catch(() => {});
-    this.reader = null;
+    this.#consuming = false;
+    this.#reader?.cancel().catch(() => {});
+    this.#reader = null;
   }
 
-  private async consume(): Promise<void> {
+  async #consume(): Promise<void> {
     const decoder = new TextDecoder();
     let buffer = "";
 
     try {
-      while (this.consuming && this.reader) {
-        const { done, value } = await this.reader.read();
+      while (this.#consuming && this.#reader) {
+        const { done, value } = await this.#reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -185,23 +185,23 @@ export class StarCommsClient {
 
         for (const block of blocks) {
           const event = parseSSEBlock(block);
-          if (event) this.emit(event);
+          if (event) this.#emit(event);
         }
       }
     } catch {
       // Stream closed or network error
     } finally {
-      this.consuming = false;
-      this.reader = null;
+      this.#consuming = false;
+      this.#reader = null;
     }
   }
 
-  private emit(event: OwnerEvent): void {
-    const handlers = this.listeners.get(event.type);
+  #emit(event: OwnerEvent): void {
+    const handlers = this.#listeners.get(event.type);
     if (handlers) {
       for (const handler of handlers) (handler as (event: OwnerEvent) => void)(event);
     }
-    for (const handler of this.wildcardListeners) handler(event);
+    for (const handler of this.#wildcardListeners) handler(event);
   }
 }
 

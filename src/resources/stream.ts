@@ -6,7 +6,10 @@ import type { PublicTokenResponse } from "../types/stream";
  * @category Resources
  */
 export class StreamResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
 
   /**
    * Opens the raw SSE Response for manual consumption.
@@ -14,15 +17,15 @@ export class StreamResource {
    * @returns The raw fetch Response with `text/event-stream` content.
    */
   async openRaw(): Promise<Response> {
-    this.http.requireOwnerKey();
-    return this.http.getRawResponse("/api/v1/stream", {
+    this.#http.requireOwnerKey();
+    return this.#http.getRawResponse("/api/v1/stream", {
       accept: "text/event-stream",
-      authorization: `Bearer ${this.http.ownerApiKey}`,
+      authorization: `Bearer ${this.#http.ownerApiKey}`,
     });
   }
 
   /** Fetches the shard's public embed token and associated URLs. */
   async getPublicToken(): Promise<PublicTokenResponse> {
-    return this.http.ownerGet<PublicTokenResponse>("/api/v1/public-token");
+    return this.#http.ownerGet<PublicTokenResponse>("/api/v1/public-token");
   }
 }

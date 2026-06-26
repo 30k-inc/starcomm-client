@@ -14,11 +14,14 @@ import type {
  * @category Resources
  */
 export class AssignmentsResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
 
   /** Fetches all current net assignments (user → net mappings). */
   async list(): Promise<ShardAssignmentsResponse> {
-    return this.http.ownerGet<ShardAssignmentsResponse>("/api/v1/assignments");
+    return this.#http.ownerGet<ShardAssignmentsResponse>("/api/v1/assignments");
   }
 
   /**
@@ -33,16 +36,16 @@ export class AssignmentsResource {
     action: "assign" | "unassign" = "assign",
   ): Promise<ShardAssignmentResult> {
     const body: AssignmentAction = { userId, netId, action };
-    return this.http.ownerPost<ShardAssignmentResult>("/api/v1/assignments", body);
+    return this.#http.ownerPost<ShardAssignmentResult>("/api/v1/assignments", body);
   }
 
   /** Assigns or unassigns multiple users in a single request. */
   async bulk(payload: BulkAssignmentPayload): Promise<ShardBulkAssignmentResult> {
-    return this.http.ownerPost<ShardBulkAssignmentResult>("/api/v1/assignments/bulk", payload);
+    return this.#http.ownerPost<ShardBulkAssignmentResult>("/api/v1/assignments/bulk", payload);
   }
 
   /** Creates a temporary net assignment that auto-expires after a TTL. */
   async temporary(payload: TemporaryAssignmentPayload): Promise<TemporaryAssignmentResult> {
-    return this.http.ownerPost<TemporaryAssignmentResult>("/api/v1/assignments/temporary", payload);
+    return this.#http.ownerPost<TemporaryAssignmentResult>("/api/v1/assignments/temporary", payload);
   }
 }

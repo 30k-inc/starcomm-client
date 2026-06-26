@@ -1,26 +1,44 @@
 import type { BaseClient } from "../base";
-import type { CreateNetPayload, RemoveNetPayload, RenameNetPayload } from "../types";
+import type {
+  CreateNetPayload,
+  RemoveNetPayload,
+  RenameNetPayload,
+  ShardNetStatus,
+  ShardStatusResponse,
+} from "../types";
 
 /**
  * Voice net management (create, rename, remove).
  * @category Resources
  */
 export class NetsResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
+
+  /**
+   * Lists all configured nets with live occupancy and relay info.
+   * Convenience wrapper around the status endpoint.
+   */
+  async list(): Promise<ShardNetStatus[]> {
+    const status = await this.#http.ownerGet<ShardStatusResponse>("/api/v1/status");
+    return status.nets;
+  }
 
   /** Creates a new voice net on the shard. */
   async create(payload: CreateNetPayload): Promise<Record<string, unknown>> {
-    return this.http.ownerPost<Record<string, unknown>>("/api/v1/nets", payload);
+    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/nets", payload);
   }
 
   /** Renames an existing net. */
   async rename(payload: RenameNetPayload): Promise<Record<string, unknown>> {
-    return this.http.ownerPost<Record<string, unknown>>("/api/v1/nets/rename", payload);
+    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/nets/rename", payload);
   }
 
   /** Removes a net by numeric ID. */
   async remove(payload: RemoveNetPayload): Promise<Record<string, unknown>> {
-    return this.http.ownerPost<Record<string, unknown>>("/api/v1/nets/remove", payload);
+    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/nets/remove", payload);
   }
 
   /**
@@ -28,7 +46,7 @@ export class NetsResource {
    * @param ref Net UID (e.g., `"net_abc123"`) or numeric ID as string.
    */
   async removeByRef(ref: string): Promise<Record<string, unknown>> {
-    return this.http.ownerDelete<Record<string, unknown>>(
+    return this.#http.ownerDelete<Record<string, unknown>>(
       `/api/v1/nets/${encodeURIComponent(ref)}`,
     );
   }

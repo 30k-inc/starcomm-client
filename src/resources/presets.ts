@@ -6,16 +6,19 @@ import type { OperationPreset, ShardPresetsResponse } from "../types";
  * @category Resources
  */
 export class PresetsResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
 
   /** Fetches all saved operation presets. */
   async list(): Promise<ShardPresetsResponse> {
-    return this.http.ownerGet<ShardPresetsResponse>("/api/v1/presets");
+    return this.#http.ownerGet<ShardPresetsResponse>("/api/v1/presets");
   }
 
   /** Saves a new operation preset (or updates an existing one by name). */
   async save(preset: OperationPreset): Promise<Record<string, unknown>> {
-    return this.http.ownerPost<Record<string, unknown>>("/api/v1/presets", preset);
+    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/presets", preset);
   }
 
   /**
@@ -23,7 +26,7 @@ export class PresetsResource {
    * @param name Preset name (case-sensitive).
    */
   async apply(name: string): Promise<Record<string, unknown>> {
-    return this.http.ownerPost<Record<string, unknown>>(
+    return this.#http.ownerPost<Record<string, unknown>>(
       `/api/v1/presets/${encodeURIComponent(name)}/apply`,
       {},
     );
@@ -34,7 +37,7 @@ export class PresetsResource {
    * @param name Preset name (case-sensitive).
    */
   async remove(name: string): Promise<Record<string, unknown>> {
-    return this.http.ownerDelete<Record<string, unknown>>(
+    return this.#http.ownerDelete<Record<string, unknown>>(
       `/api/v1/presets/${encodeURIComponent(name)}`,
     );
   }

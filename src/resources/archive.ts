@@ -15,7 +15,10 @@ import type {
  * @category Resources
  */
 export class ArchiveResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
 
   /**
    * Lists archived net configurations.
@@ -30,7 +33,7 @@ export class ArchiveResource {
     }
     if (query?.limit) params.set("limit", String(query.limit));
     const qs = params.toString();
-    return this.http.ownerGet<ShardArchiveListResponse>(`/api/v1/archive${qs ? `?${qs}` : ""}`);
+    return this.#http.ownerGet<ShardArchiveListResponse>(`/api/v1/archive${qs ? `?${qs}` : ""}`);
   }
 
   /**
@@ -38,14 +41,14 @@ export class ArchiveResource {
    * @param uid Archive entry unique identifier.
    */
   async get(uid: string): Promise<ShardArchiveEntryResponse> {
-    return this.http.ownerGet<ShardArchiveEntryResponse>(
+    return this.#http.ownerGet<ShardArchiveEntryResponse>(
       `/api/v1/archive/${encodeURIComponent(uid)}`,
     );
   }
 
   /** Creates or updates an archive entry. */
   async upsert(payload: ArchiveUpsertPayload): Promise<ShardArchiveUpsertResponse> {
-    return this.http.ownerPost<ShardArchiveUpsertResponse>("/api/v1/archive", payload);
+    return this.#http.ownerPost<ShardArchiveUpsertResponse>("/api/v1/archive", payload);
   }
 
   /**
@@ -53,7 +56,7 @@ export class ArchiveResource {
    * @param uid Archive entry unique identifier.
    */
   async update(uid: string, payload: ArchiveUpsertPayload): Promise<ShardArchiveUpsertResponse> {
-    return this.http.ownerPost<ShardArchiveUpsertResponse>(
+    return this.#http.ownerPost<ShardArchiveUpsertResponse>(
       `/api/v1/archive/${encodeURIComponent(uid)}`,
       payload,
     );
@@ -64,7 +67,7 @@ export class ArchiveResource {
    * @param uid Archive entry unique identifier.
    */
   async delete(uid: string): Promise<ShardArchiveDeleteResponse> {
-    return this.http.ownerDelete<ShardArchiveDeleteResponse>(
+    return this.#http.ownerDelete<ShardArchiveDeleteResponse>(
       `/api/v1/archive/${encodeURIComponent(uid)}`,
     );
   }
@@ -74,7 +77,7 @@ export class ArchiveResource {
    * @param uid Archive entry unique identifier.
    */
   async restore(uid: string): Promise<ShardArchiveRestoreResponse> {
-    return this.http.ownerPost<ShardArchiveRestoreResponse>(
+    return this.#http.ownerPost<ShardArchiveRestoreResponse>(
       `/api/v1/archive/${encodeURIComponent(uid)}/restore`,
       {},
     );
@@ -82,6 +85,6 @@ export class ArchiveResource {
 
   /** Fetches the archive sync/checkpoint status. */
   async syncStatus(): Promise<ShardArchiveSyncStatusResponse> {
-    return this.http.ownerGet<ShardArchiveSyncStatusResponse>("/api/v1/archive/sync/status");
+    return this.#http.ownerGet<ShardArchiveSyncStatusResponse>("/api/v1/archive/sync/status");
   }
 }

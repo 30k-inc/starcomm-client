@@ -11,15 +11,18 @@ import type {
  * @category Resources
  */
 export class CommsResource {
-  constructor(private readonly http: BaseClient) {}
+  readonly #http: BaseClient;
+  constructor(http: BaseClient) {
+    this.#http = http;
+  }
 
   /** Broadcasts an ACARS text alert to all connected operators. */
   async sendAcars(payload: AcarsPayload): Promise<AcarsResult> {
-    return this.http.ownerPost<AcarsResult>("/api/v1/acars", payload);
+    return this.#http.ownerPost<AcarsResult>("/api/v1/acars", payload);
   }
 
   /** Force-disconnects a client from the shard. */
   async disconnect(payload: DisconnectClientPayload): Promise<DisconnectClientResult> {
-    return this.http.ownerPost<DisconnectClientResult>("/api/v1/clients/disconnect", payload);
+    return this.#http.ownerPost<DisconnectClientResult>("/api/v1/clients/disconnect", payload);
   }
 }
