@@ -3,4 +3,3 @@ dist/
 docs/
 *.tgz
 raw/
-pnpm-lock.yaml
