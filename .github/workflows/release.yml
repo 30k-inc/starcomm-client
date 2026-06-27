@@ -11,14 +11,11 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    environment: npm-publish
     permissions:
       contents: write
       pull-requests: write
-      id-token: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      NODE_OPTIONS: "--dns-result-order=ipv4first"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,21 +29,14 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-          registry-url: "https://registry.npmjs.org"
 
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run build
 
-      - name: Create Release PR or Publish
-        id: changesets
+      - name: Create Release PR
         uses: changesets/action@v1
         with:
           version: pnpm run version
-          publish: echo "publish-skipped"
           title: "chore: version package"
           commit: "chore: version package"
-
-      - name: Publish to npm
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        run: npm publish --provenance --access public
