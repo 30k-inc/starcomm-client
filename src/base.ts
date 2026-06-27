@@ -12,6 +12,8 @@ export interface StarCommsClientConfig {
   shardToken?: string;
   /** Request timeout in milliseconds. @default 10000 */
   timeoutMs?: number;
+  /** Connection timeout for streaming endpoints in ms. @default 30000 */
+  connectTimeoutMs?: number;
   /** Custom fetch implementation. @default globalThis.fetch */
   fetch?: typeof fetch;
 }
@@ -23,17 +25,19 @@ export interface StarCommsClientConfig {
  */
 export class BaseClient {
   readonly baseUrl: string;
-  readonly ownerApiKey: string;
-  readonly shardToken?: string;
-  readonly timeoutMs: number;
-  readonly _fetch: typeof fetch;
+  readonly #ownerApiKey: string;
+  readonly #shardToken?: string;
+  readonly #timeoutMs: number;
+  readonly #connectTimeoutMs: number;
+  readonly #fetch: typeof fetch;
 
   constructor(config: StarCommsClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, "");
-    this.ownerApiKey = config.ownerApiKey;
-    this.shardToken = config.shardToken;
-    this.timeoutMs = config.timeoutMs ?? 10_000;
-    this._fetch = config.fetch ?? globalThis.fetch;
+    this.#ownerApiKey = config.ownerApiKey;
+    this.#shardToken = config.shardToken;
+    this.#timeoutMs = config.timeoutMs ?? 10_000;
+    this.#connectTimeoutMs = config.connectTimeoutMs ?? 30_000;
+    this.#fetch = config.fetch ?? globalThis.fetch;
   }
 
   async get<T>(path: string, bearerToken?: string): Promise<T> {
@@ -41,48 +45,80 @@ export class BaseClient {
     const headers: Record<string, string> = { accept: "application/json" };
     if (bearerToken) headers.authorization = `Bearer ${bearerToken}`;
 
-    const response = await this._fetch(url, {
+    const response = await this.#fetch(url, {
       method: "GET",
       headers,
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: AbortSignal.timeout(this.#timeoutMs),
     });
 
-    return this.handleResponse<T>(response);
+    return this.#handleResponse<T>(response);
   }
 
   async ownerGet<T>(path: string): Promise<T> {
-    this.requireOwnerKey();
-    return this.get<T>(path, this.ownerApiKey);
+    this.#requireOwnerKey();
+    return this.get<T>(path, this.#ownerApiKey);
   }
 
   async ownerPost<T>(path: string, body: unknown): Promise<T> {
-    this.requireOwnerKey();
+    this.#requireOwnerKey();
     const url = `${this.baseUrl}${path}`;
-    const response = await this._fetch(url, {
+    const response = await this.#fetch(url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
         accept: "application/json",
-        authorization: `Bearer ${this.ownerApiKey}`,
+        authorization: `Bearer ${this.#ownerApiKey}`,
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: AbortSignal.timeout(this.#timeoutMs),
     });
-    return this.handleResponse<T>(response);
+    return this.#handleResponse<T>(response);
+  }
+
+  async ownerPut<T>(path: string, body: unknown): Promise<T> {
+    this.#requireOwnerKey();
+    const url = `${this.baseUrl}${path}`;
+    const response = await this.#fetch(url, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+        authorization: `Bearer ${this.#ownerApiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.#timeoutMs),
+    });
+    return this.#handleResponse<T>(response);
+  }
+
+  async ownerPatch<T>(path: string, body: unknown): Promise<T> {
+    this.#requireOwnerKey();
+    const url = `${this.baseUrl}${path}`;
+    const response = await this.#fetch(url, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+        authorization: `Bearer ${this.#ownerApiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.#timeoutMs),
+    });
+    return this.#handleResponse<T>(response);
   }
 
   async ownerDelete<T>(path: string): Promise<T> {
-    this.requireOwnerKey();
+    this.#requireOwnerKey();
     const url = `${this.baseUrl}${path}`;
-    const response = await this._fetch(url, {
+    const response = await this.#fetch(url, {
       method: "DELETE",
       headers: {
         accept: "application/json",
-        authorization: `Bearer ${this.ownerApiKey}`,
+        authorization: `Bearer ${this.#ownerApiKey}`,
       },
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: AbortSignal.timeout(this.#timeoutMs),
     });
-    return this.handleResponse<T>(response);
+    return this.#handleResponse<T>(response);
   }
 
   async getRawText(path: string, bearerToken?: string): Promise<string> {
@@ -90,10 +126,10 @@ export class BaseClient {
     const headers: Record<string, string> = {};
     if (bearerToken) headers.authorization = `Bearer ${bearerToken}`;
 
-    const response = await this._fetch(url, {
+    const response = await this.#fetch(url, {
       method: "GET",
       headers,
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: AbortSignal.timeout(this.#timeoutMs),
     });
     if (!response.ok) {
       throw new StarCommsError(response.status, `Request failed: HTTP ${response.status}`);
@@ -101,11 +137,17 @@ export class BaseClient {
     return response.text();
   }
 
+  /**
+   * Fetches a raw Response for long-lived streaming connections.
+   * Uses `connectTimeoutMs` to abort if the server never responds,
+   * but does not limit the duration of the stream itself.
+   */
   async getRawResponse(path: string, headers: Record<string, string>): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
-    const response = await this._fetch(url, {
+    const response = await this.#fetch(url, {
       method: "GET",
       headers,
+      signal: AbortSignal.timeout(this.#connectTimeoutMs),
     });
     if (!response.ok) {
       throw new StarCommsError(response.status, `Request failed: HTTP ${response.status}`);
@@ -113,13 +155,33 @@ export class BaseClient {
     return response;
   }
 
-  requireOwnerKey(): void {
-    if (!this.ownerApiKey) {
+  /** Returns auth headers for owner-authenticated requests. Used by resource classes. */
+  getOwnerHeaders(): Record<string, string> {
+    this.#requireOwnerKey();
+    return {
+      accept: "text/event-stream",
+      authorization: `Bearer ${this.#ownerApiKey}`,
+    };
+  }
+
+  /** Returns the shard token for debug endpoints, or undefined if not configured. */
+  getShardToken(): string | undefined {
+    return this.#shardToken;
+  }
+
+  /** Returns the owner API key for bearer-token authenticated requests. */
+  getOwnerApiKey(): string {
+    this.#requireOwnerKey();
+    return this.#ownerApiKey;
+  }
+
+  #requireOwnerKey(): void {
+    if (!this.#ownerApiKey) {
       throw new StarCommsError(500, "Owner API key not configured.");
     }
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
+  async #handleResponse<T>(response: Response): Promise<T> {
     const text = await response.text();
     let payload: unknown;
     try {

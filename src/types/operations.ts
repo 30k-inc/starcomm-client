@@ -1,10 +1,13 @@
-import type { ShardFeatures } from "./common";
+import type { PublicNetState, ShardFeatures } from "./common";
 
 /**
- * Payload for opening or closing the operation.
+ * Response from opening or closing the operation.
  * @category Operations
  */
-export interface SetOperationPayload {
+export interface SetOperationResponse {
+  ok: boolean;
+  guildId: string;
+  action: "operation.set";
   open: boolean;
 }
 
@@ -19,11 +22,15 @@ export interface ShardFeaturesResponse {
 }
 
 /**
- * Payload for updating shard features (partial update).
+ * Response from updating shard features.
  * @category Operations
  */
-export interface SetFeaturesPayload {
-  features: Partial<ShardFeatures>;
+export interface SetFeaturesResponse {
+  ok: boolean;
+  guildId: string;
+  action: "features.set";
+  features: ShardFeatures;
+  publicNet: PublicNetState;
 }
 
 /**
@@ -46,9 +53,12 @@ export interface ShardRulesResponse {
 }
 
 /**
- * Payload for replacing all auto-assignment rules.
+ * Response from replacing auto-assignment rules.
  * @category Operations
  */
-export interface SetRulesPayload {
+export interface SetRulesResponse {
+  ok: boolean;
+  guildId: string;
+  action: "rules.set";
   rules: AutoAssignRule[];
 }

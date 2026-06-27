@@ -1,8 +1,10 @@
 import type { BaseClient } from "../base";
 import type {
-  SetFeaturesPayload,
-  SetOperationPayload,
-  SetRulesPayload,
+  AutoAssignRule,
+  SetFeaturesResponse,
+  SetOperationResponse,
+  SetRulesResponse,
+  ShardFeatures,
   ShardFeaturesResponse,
   ShardRulesResponse,
 } from "../types";
@@ -17,9 +19,14 @@ export class OperationsResource {
     this.#http = http;
   }
 
-  /** Opens or closes the operation (controls whether operators can connect). */
-  async set(payload: SetOperationPayload): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/operation", payload);
+  /** Opens the operation (allows operators to connect). */
+  async open(): Promise<SetOperationResponse> {
+    return this.#http.ownerPost<SetOperationResponse>("/api/v1/operation", { open: true });
+  }
+
+  /** Closes the operation (prevents new operator connections). */
+  async close(): Promise<SetOperationResponse> {
+    return this.#http.ownerPost<SetOperationResponse>("/api/v1/operation", { open: false });
   }
 
   /** Fetches the current shard feature configuration. */
@@ -28,8 +35,8 @@ export class OperationsResource {
   }
 
   /** Updates shard feature flags (max nets, public net, global PTT). */
-  async setFeatures(payload: SetFeaturesPayload): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/features", payload);
+  async setFeatures(features: Partial<ShardFeatures>): Promise<SetFeaturesResponse> {
+    return this.#http.ownerPost<SetFeaturesResponse>("/api/v1/features", { features });
   }
 
   /** Fetches role-to-net auto-assignment rules. */
@@ -38,7 +45,7 @@ export class OperationsResource {
   }
 
   /** Replaces all auto-assignment rules. */
-  async setRules(payload: SetRulesPayload): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/rules", payload);
+  async setRules(rules: AutoAssignRule[]): Promise<SetRulesResponse> {
+    return this.#http.ownerPost<SetRulesResponse>("/api/v1/rules", { rules });
   }
 }

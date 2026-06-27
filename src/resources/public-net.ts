@@ -1,5 +1,5 @@
 import type { BaseClient } from "../base";
-import type { PublicNetShowPayload, PublicNetStatusResponse } from "../types";
+import type { PublicNetActionResponse, PublicNetStatusResponse } from "../types";
 
 /**
  * Public net feature management (show, hide, remove, restore).
@@ -16,23 +16,30 @@ export class PublicNetResource {
     return this.#http.ownerGet<PublicNetStatusResponse>("/api/v1/public-net");
   }
 
-  /** Shows or re-adds the public net with optional name and role gates. */
-  async show(payload: PublicNetShowPayload = {}): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/public-net/show", payload);
+  /**
+   * Shows or re-adds the public net.
+   * @param name Optional display name for the public net.
+   * @param roleIds Optional role IDs that gate access to the public net.
+   */
+  async show(name?: string, roleIds?: string[]): Promise<PublicNetActionResponse> {
+    return this.#http.ownerPost<PublicNetActionResponse>("/api/v1/public-net/show", {
+      ...(name && { name }),
+      ...(roleIds && { roleIds }),
+    });
   }
 
   /** Hides the public net while preserving its config. */
-  async hide(): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/public-net/hide", {});
+  async hide(): Promise<PublicNetActionResponse> {
+    return this.#http.ownerPost<PublicNetActionResponse>("/api/v1/public-net/hide", {});
   }
 
   /** Removes the public net and resets its config. */
-  async remove(): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/public-net/remove", {});
+  async remove(): Promise<PublicNetActionResponse> {
+    return this.#http.ownerPost<PublicNetActionResponse>("/api/v1/public-net/remove", {});
   }
 
   /** Restores the public net after it was hidden or removed. */
-  async restore(): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/public-net/restore", {});
+  async restore(): Promise<PublicNetActionResponse> {
+    return this.#http.ownerPost<PublicNetActionResponse>("/api/v1/public-net/restore", {});
   }
 }

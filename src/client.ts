@@ -23,6 +23,27 @@ export type { StarCommsClientConfig } from "./base";
 export type WildcardHandler = (event: OwnerEvent) => void;
 
 /**
+ * Options for controlling SSE stream reconnection behavior.
+ * @category Stream
+ */
+export interface ReconnectOptions {
+  /** Whether to automatically reconnect on stream loss. @default true */
+  autoReconnect?: boolean;
+  /** Initial delay before first reconnect attempt in ms. @default 1000 */
+  initialDelayMs?: number;
+  /** Maximum delay between reconnect attempts in ms. @default 30000 */
+  maxDelayMs?: number;
+  /** Maximum number of consecutive reconnect attempts before giving up. @default Infinity */
+  maxAttempts?: number;
+}
+
+/** Lifecycle event types emitted by the client's SSE stream. */
+export type LifecycleEventType = "stream.error" | "stream.disconnected" | "stream.reconnected";
+
+/** Handler for stream lifecycle events. */
+export type LifecycleHandler = (detail: { reason?: string; attempt?: number }) => void;
+
+/**
  * Star Comms Shard Owner API Client.
  *
  * A framework-agnostic TypeScript client for interacting with a Star Comms shard.
@@ -45,6 +66,14 @@ export type WildcardHandler = (event: OwnerEvent) => void;
  *
  * client.on("ptt.start", (event) => {
  *   console.log(`${event.data.userId} transmitting on net ${event.data.netId}`);
+ * });
+ *
+ * // Lifecycle events
+ * client.onLifecycle("stream.disconnected", ({ reason }) => {
+ *   console.warn("Stream lost:", reason);
+ * });
+ * client.onLifecycle("stream.reconnected", ({ attempt }) => {
+ *   console.log("Reconnected after", attempt, "attempts");
  * });
  *
  * await client.connect(); // opens SSE stream and starts dispatching events
@@ -83,8 +112,11 @@ export class StarCommsClient {
 
   readonly #listeners = new Map<string, Set<(event: never) => void>>();
   readonly #wildcardListeners = new Set<WildcardHandler>();
+  readonly #lifecycleListeners = new Map<LifecycleEventType, Set<LifecycleHandler>>();
   #reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   #consuming = false;
+  #intentionalDisconnect = false;
+  #reconnectOptions: Required<ReconnectOptions>;
 
   constructor(config: StarCommsClientConfig) {
     const http = new BaseClient(config);
@@ -100,6 +132,13 @@ export class StarCommsClient {
     this.archive = new ArchiveResource(http);
     this.stream = new StreamResource(http);
     this.publicNet = new PublicNetResource(http);
+
+    this.#reconnectOptions = {
+      autoReconnect: true,
+      initialDelayMs: 1_000,
+      maxDelayMs: 30_000,
+      maxAttempts: Infinity,
+    };
   }
 
   /**
@@ -143,13 +182,49 @@ export class StarCommsClient {
   }
 
   /**
+   * Register a handler for stream lifecycle events.
+   *
+   * @example
+   * ```typescript
+   * client.onLifecycle("stream.disconnected", ({ reason }) => {
+   *   console.warn("Lost connection:", reason);
+   * });
+   * ```
+   */
+  onLifecycle(event: LifecycleEventType, handler: LifecycleHandler): this {
+    let set = this.#lifecycleListeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.#lifecycleListeners.set(event, set);
+    }
+    set.add(handler);
+    return this;
+  }
+
+  /** Remove a lifecycle event handler. */
+  offLifecycle(event: LifecycleEventType, handler: LifecycleHandler): this {
+    this.#lifecycleListeners.get(event)?.delete(handler);
+    return this;
+  }
+
+  /**
    * Opens the SSE event stream and begins dispatching events to registered handlers.
    * Call this after registering your `.on()` handlers.
    *
-   * @throws {StarCommsError} If the connection fails.
+   * @param reconnect Options controlling auto-reconnection behavior.
+   * @throws {StarCommsError} If the initial connection fails.
    */
-  async connect(): Promise<void> {
+  async connect(reconnect?: ReconnectOptions): Promise<void> {
     if (this.#consuming) return;
+    if (reconnect) {
+      this.#reconnectOptions = {
+        autoReconnect: reconnect.autoReconnect ?? true,
+        initialDelayMs: reconnect.initialDelayMs ?? 1_000,
+        maxDelayMs: reconnect.maxDelayMs ?? 30_000,
+        maxAttempts: reconnect.maxAttempts ?? Infinity,
+      };
+    }
+    this.#intentionalDisconnect = false;
     const response = await this.stream.openRaw();
     this.#reader = response.body!.getReader();
     this.#consuming = true;
@@ -163,8 +238,10 @@ export class StarCommsClient {
 
   /**
    * Closes the SSE event stream. REST methods remain usable.
+   * Will not trigger automatic reconnection.
    */
   disconnect(): void {
+    this.#intentionalDisconnect = true;
     this.#consuming = false;
     this.#reader?.cancel().catch(() => {});
     this.#reader = null;
@@ -188,12 +265,51 @@ export class StarCommsClient {
           if (event) this.#emit(event);
         }
       }
-    } catch {
-      // Stream closed or network error
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : "Unknown error";
+      this.#emitLifecycle("stream.error", { reason });
     } finally {
       this.#consuming = false;
       this.#reader = null;
+
+      if (!this.#intentionalDisconnect) {
+        this.#emitLifecycle("stream.disconnected", { reason: "Stream ended" });
+        if (this.#reconnectOptions.autoReconnect) {
+          this.#attemptReconnect();
+        }
+      }
     }
+  }
+
+  async #attemptReconnect(): Promise<void> {
+    const { initialDelayMs, maxDelayMs, maxAttempts } = this.#reconnectOptions;
+    let attempt = 0;
+
+    while (attempt < maxAttempts && !this.#intentionalDisconnect) {
+      attempt++;
+      const delay = Math.min(initialDelayMs * 2 ** (attempt - 1), maxDelayMs);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      if (this.#intentionalDisconnect) return;
+
+      try {
+        const response = await this.stream.openRaw();
+        this.#reader = response.body!.getReader();
+        this.#consuming = true;
+        this.#emitLifecycle("stream.reconnected", { attempt });
+        this.#consume();
+        return;
+      } catch {
+        this.#emitLifecycle("stream.error", {
+          reason: `Reconnect attempt ${attempt} failed`,
+        });
+      }
+    }
+
+    // Exhausted max attempts
+    this.#emitLifecycle("stream.disconnected", {
+      reason: `Failed to reconnect after ${attempt} attempts`,
+    });
   }
 
   #emit(event: OwnerEvent): void {
@@ -203,8 +319,20 @@ export class StarCommsClient {
     }
     for (const handler of this.#wildcardListeners) handler(event);
   }
+
+  #emitLifecycle(event: LifecycleEventType, detail: { reason?: string; attempt?: number }): void {
+    const handlers = this.#lifecycleListeners.get(event);
+    if (handlers) {
+      for (const handler of handlers) handler(detail);
+    }
+  }
 }
 
+/**
+ * Parses an SSE text block into a typed OwnerEvent.
+ * Uses the SSE `event:` field as the authoritative event type, falling back
+ * to the `type` field in the JSON payload if present.
+ */
 function parseSSEBlock(block: string): OwnerEvent | null {
   let eventType = "";
   let data = "";
@@ -221,7 +349,10 @@ function parseSSEBlock(block: string): OwnerEvent | null {
   if (!eventType || !data) return null;
 
   try {
-    return JSON.parse(data) as OwnerEvent;
+    const parsed = JSON.parse(data) as Record<string, unknown>;
+    // SSE event: field is the source of truth for event type
+    parsed.type = eventType;
+    return parsed as unknown as OwnerEvent;
   } catch {
     return null;
   }

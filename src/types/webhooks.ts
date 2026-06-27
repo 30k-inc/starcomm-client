@@ -20,11 +20,20 @@ export interface ShardWebhooksResponse {
 }
 
 /**
- * Payload for registering a new webhook.
+ * Result of registering a webhook (includes the generated secret).
  * @category Webhooks
  */
-export interface RegisterWebhookPayload {
-  url: string;
-  events: string[];
-  secret?: string;
+export interface ShardWebhookRegisterResponse {
+  ok: boolean;
+  webhook: WebhookEntry;
+  secret: string;
+}
+
+/**
+ * Result of removing a webhook.
+ * @category Webhooks
+ */
+export interface ShardWebhookRemoveResponse {
+  ok: boolean;
+  id: string;
 }

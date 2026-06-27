@@ -17,11 +17,7 @@ export class StreamResource {
    * @returns The raw fetch Response with `text/event-stream` content.
    */
   async openRaw(): Promise<Response> {
-    this.#http.requireOwnerKey();
-    return this.#http.getRawResponse("/api/v1/stream", {
-      accept: "text/event-stream",
-      authorization: `Bearer ${this.#http.ownerApiKey}`,
-    });
+    return this.#http.getRawResponse("/api/v1/stream", this.#http.getOwnerHeaders());
   }
 
   /** Fetches the shard's public embed token and associated URLs. */

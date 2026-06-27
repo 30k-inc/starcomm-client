@@ -5,7 +5,6 @@ import type {
   ShardAssignmentResult,
   ShardAssignmentsResponse,
   ShardBulkAssignmentResult,
-  TemporaryAssignmentPayload,
   TemporaryAssignmentResult,
 } from "../types";
 
@@ -25,27 +24,42 @@ export class AssignmentsResource {
   }
 
   /**
-   * Assigns or unassigns a user to/from a net.
+   * Assigns a user to a net.
    * @param userId Discord user ID of the operator.
    * @param netId Numeric net identifier.
-   * @param action Whether to assign or unassign. @default "assign"
    */
-  async set(
-    userId: string,
-    netId: number,
-    action: "assign" | "unassign" = "assign",
-  ): Promise<ShardAssignmentResult> {
-    const body: AssignmentAction = { userId, netId, action };
+  async assign(userId: string, netId: number): Promise<ShardAssignmentResult> {
+    const body: AssignmentAction = { userId, netId, action: "assign" };
+    return this.#http.ownerPost<ShardAssignmentResult>("/api/v1/assignments", body);
+  }
+
+  /**
+   * Unassigns a user from a net.
+   * @param userId Discord user ID of the operator.
+   * @param netId Numeric net identifier.
+   */
+  async unassign(userId: string, netId: number): Promise<ShardAssignmentResult> {
+    const body: AssignmentAction = { userId, netId, action: "unassign" };
     return this.#http.ownerPost<ShardAssignmentResult>("/api/v1/assignments", body);
   }
 
   /** Assigns or unassigns multiple users in a single request. */
-  async bulk(payload: BulkAssignmentPayload): Promise<ShardBulkAssignmentResult> {
+  async bulk(assignments: AssignmentAction[]): Promise<ShardBulkAssignmentResult> {
+    const payload: BulkAssignmentPayload = { assignments };
     return this.#http.ownerPost<ShardBulkAssignmentResult>("/api/v1/assignments/bulk", payload);
   }
 
-  /** Creates a temporary net assignment that auto-expires after a TTL. */
-  async temporary(payload: TemporaryAssignmentPayload): Promise<TemporaryAssignmentResult> {
-    return this.#http.ownerPost<TemporaryAssignmentResult>("/api/v1/assignments/temporary", payload);
+  /**
+   * Creates a temporary net assignment that auto-expires.
+   * @param userId Discord user ID of the operator.
+   * @param netId Numeric net identifier.
+   * @param ttlMs Time-to-live in milliseconds (min 15s, max 24h). Defaults to 5 minutes.
+   */
+  async temporary(userId: string, netId: number, ttlMs?: number): Promise<TemporaryAssignmentResult> {
+    return this.#http.ownerPost<TemporaryAssignmentResult>("/api/v1/assignments/temporary", {
+      userId,
+      netId,
+      ...(ttlMs !== undefined && { ttlMs }),
+    });
   }
 }

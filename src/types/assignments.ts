@@ -10,6 +10,7 @@ export interface ShardAssignmentsResponse {
 
 /**
  * A single assign/unassign action for one user.
+ * Used in bulk operations.
  * @category Assignments
  */
 export interface AssignmentAction {
@@ -34,7 +35,7 @@ export interface ShardAssignmentResult {
 }
 
 /**
- * Payload for bulk assignment operations.
+ * Payload for bulk assignment operations (internal).
  * @category Assignments
  */
 export interface BulkAssignmentPayload {
@@ -55,21 +56,6 @@ export interface ShardBulkAssignmentResult {
     action: string;
     ok: boolean;
   }>;
-}
-
-/**
- * Payload for creating a time-limited net assignment.
- * @category Assignments
- */
-export interface TemporaryAssignmentPayload {
-  userId: string;
-  netId: number;
-  /** Net UID (alternative to netId). */
-  netUid?: string;
-  /** TTL in milliseconds (min 15s, max 24h). */
-  ttlMs?: number;
-  /** Minutes until expiry (default 5). Ignored if ttlMs is set. */
-  expiresMinutes?: number;
 }
 
 /**

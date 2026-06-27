@@ -14,6 +14,16 @@ export interface ShardFeatures {
 }
 
 /**
+ * Public net state returned in action responses.
+ * @category Common
+ */
+export interface PublicNetState {
+  enabled: boolean;
+  name: string;
+  roleIds: string[];
+}
+
+/**
  * Standard error response from the shard.
  * @category Common
  */

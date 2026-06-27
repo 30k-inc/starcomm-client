@@ -1,37 +1,41 @@
+import type { ArchiveEntry } from "./archive";
+
 /**
- * Payload for creating a new voice net.
+ * Response from creating a net.
  * @category Nets
  */
-export interface CreateNetPayload {
+export interface NetCreateResponse {
+  ok: boolean;
+  guildId: string;
+  action: "net.create";
+  netId: number;
+  netUid: string;
   name: string;
 }
 
 /**
- * Payload for renaming an existing net.
+ * Response from renaming a net.
  * @category Nets
  */
-export interface RenameNetPayload {
+export interface NetRenameResponse {
+  ok: boolean;
+  guildId: string;
+  action: "net.rename";
   netId: number;
-  /** Net UID (alternative to netId). */
-  netUid?: string;
+  netUid: string;
   name: string;
 }
 
 /**
- * Payload for removing a net by numeric ID.
+ * Response from removing a net.
  * @category Nets
  */
-export interface RemoveNetPayload {
+export interface NetRemoveResponse {
+  ok: boolean;
+  guildId: string;
+  action: "net.remove";
   netId: number;
-  /** Net UID (alternative to netId). */
-  netUid?: string;
-}
-
-/**
- * Payload for removing a net by UID or string reference.
- * @category Nets
- */
-export interface RemoveNetByRefPayload {
-  /** Net UID (e.g., `"net_abc123"`) or numeric net ID as string. */
-  ref: string;
+  netUid: string;
+  archived: boolean;
+  entry: ArchiveEntry;
 }

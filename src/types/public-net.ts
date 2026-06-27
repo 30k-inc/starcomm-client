@@ -1,22 +1,23 @@
+import type { PublicNetState, ShardFeatures } from "./common";
+
 /**
- * Current public net feature state.
+ * Current public net feature state (GET response).
  * @category Public Net
  */
 export interface PublicNetStatusResponse {
   ok: boolean;
   guildId: string;
-  publicNet: {
-    enabled: boolean;
-    name: string;
-    roleIds: string[];
-  };
+  publicNet: PublicNetState;
 }
 
 /**
- * Payload for showing/adding the public net.
+ * Response from a public net action (show, hide, remove, restore).
  * @category Public Net
  */
-export interface PublicNetShowPayload {
-  name?: string;
-  roleIds?: string[];
+export interface PublicNetActionResponse {
+  ok: boolean;
+  guildId: string;
+  action: string;
+  features: ShardFeatures;
+  publicNet: PublicNetState;
 }

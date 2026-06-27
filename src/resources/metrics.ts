@@ -23,8 +23,7 @@ export class MetricsResource {
 
   /** Fetches metrics in Prometheus exposition format (text/plain). */
   async prometheus(): Promise<string> {
-    this.#http.requireOwnerKey();
-    return this.#http.getRawText("/api/v1/metrics/prometheus", this.#http.ownerApiKey);
+    return this.#http.getRawText("/api/v1/metrics/prometheus", this.#http.getOwnerApiKey());
   }
 
   /**
@@ -41,9 +40,10 @@ export class MetricsResource {
    * @throws {StarCommsError} If `shardToken` was not provided in config.
    */
   async getDebug(): Promise<Record<string, unknown>> {
-    if (!this.#http.shardToken) {
+    const shardToken = this.#http.getShardToken();
+    if (!shardToken) {
       throw new StarCommsError(500, "Shard token not configured. Cannot call /debug.");
     }
-    return this.#http.get<Record<string, unknown>>("/debug", this.#http.shardToken);
+    return this.#http.get<Record<string, unknown>>("/debug", shardToken);
   }
 }

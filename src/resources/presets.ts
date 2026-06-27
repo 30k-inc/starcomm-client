@@ -1,5 +1,11 @@
 import type { BaseClient } from "../base";
-import type { OperationPreset, ShardPresetsResponse } from "../types";
+import type {
+  OperationPreset,
+  ShardPresetApplyResponse,
+  ShardPresetRemoveResponse,
+  ShardPresetSaveResponse,
+  ShardPresetsResponse,
+} from "../types";
 
 /**
  * Operation preset management (save, apply, remove).
@@ -17,16 +23,16 @@ export class PresetsResource {
   }
 
   /** Saves a new operation preset (or updates an existing one by name). */
-  async save(preset: OperationPreset): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>("/api/v1/presets", preset);
+  async save(preset: OperationPreset): Promise<ShardPresetSaveResponse> {
+    return this.#http.ownerPost<ShardPresetSaveResponse>("/api/v1/presets", preset);
   }
 
   /**
    * Applies a saved preset, restoring its net layout and assignments.
    * @param name Preset name (case-sensitive).
    */
-  async apply(name: string): Promise<Record<string, unknown>> {
-    return this.#http.ownerPost<Record<string, unknown>>(
+  async apply(name: string): Promise<ShardPresetApplyResponse> {
+    return this.#http.ownerPost<ShardPresetApplyResponse>(
       `/api/v1/presets/${encodeURIComponent(name)}/apply`,
       {},
     );
@@ -36,8 +42,8 @@ export class PresetsResource {
    * Deletes a saved preset.
    * @param name Preset name (case-sensitive).
    */
-  async remove(name: string): Promise<Record<string, unknown>> {
-    return this.#http.ownerDelete<Record<string, unknown>>(
+  async remove(name: string): Promise<ShardPresetRemoveResponse> {
+    return this.#http.ownerDelete<ShardPresetRemoveResponse>(
       `/api/v1/presets/${encodeURIComponent(name)}`,
     );
   }
