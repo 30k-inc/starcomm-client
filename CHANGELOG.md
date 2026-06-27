@@ -1,5 +1,11 @@
 # @30k/starcomm-client
 
+## 0.2.0
+
+### Minor Changes
+
+- [`cedc6ab`](https://github.com/30k-inc/starcomm-client/commit/cedc6ab660c8663f4e402f02494311082b05ed21) Thanks [@bombitmanbomb](https://github.com/bombitmanbomb)! - Flatten the resource methods
+
 ## 0.1.1
 
 ### Patch Changes
