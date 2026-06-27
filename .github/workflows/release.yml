@@ -38,9 +38,14 @@ jobs:
       - run: pnpm run build
 
       - name: Create Release PR or Publish
+        id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm run version
-          publish: pnpm changeset publish
+          publish: echo "publish-skipped"
           title: "chore: version package"
           commit: "chore: version package"
+
+      - name: Publish to npm
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: npm publish --provenance --access public
