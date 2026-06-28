@@ -1,5 +1,11 @@
 # @30k/starcomm-client
 
+## 0.2.1
+
+### Patch Changes
+
+- [#4](https://github.com/30k-inc/starcomm-client/pull/4) [`d3bb778`](https://github.com/30k-inc/starcomm-client/commit/d3bb778294633eb1e8bde24ee9e341ac6ffc0867) Thanks [@bombitmanbomb](https://github.com/bombitmanbomb)! - Fix SSE stream early timeout
+
 ## 0.2.0
 
 ### Minor Changes
