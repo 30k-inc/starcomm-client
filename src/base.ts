@@ -144,11 +144,29 @@ export class BaseClient {
    */
   async getRawResponse(path: string, headers: Record<string, string>): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
-    const response = await this.#fetch(url, {
-      method: "GET",
-      headers,
-      signal: AbortSignal.timeout(this.#connectTimeoutMs),
-    });
+    // Use a manual AbortController so we can clear the timeout once connected.
+    // AbortSignal.timeout() would kill the entire stream after connectTimeoutMs.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.#connectTimeoutMs);
+
+    let response: Response;
+    try {
+      response = await this.#fetch(url, {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      if (controller.signal.aborted) {
+        throw new StarCommsError(408, `Connection timed out after ${this.#connectTimeoutMs}ms`);
+      }
+      throw err;
+    }
+
+    // Connection established — clear the timeout so the stream body lives indefinitely
+    clearTimeout(timer);
+
     if (!response.ok) {
       throw new StarCommsError(response.status, `Request failed: HTTP ${response.status}`);
     }
