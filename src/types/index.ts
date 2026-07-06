@@ -10,3 +10,4 @@ export * from "./webhooks";
 export * from "./archive";
 export * from "./stream";
 export * from "./public-net";
+export * from "./audio";

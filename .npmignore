@@ -1,0 +1,10 @@
+src/
+examples/
+raw/
+docs/
+*.tgz
+.env
+.gitignore
+.changeset/
+tsconfig.json
+typedoc.json

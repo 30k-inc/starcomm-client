@@ -15,5 +15,6 @@ export {
   ArchiveResource,
   StreamResource,
   PublicNetResource,
+  AudioResource,
 } from "./resources";
 export type * from "./types";
