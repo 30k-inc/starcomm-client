@@ -1,5 +1,11 @@
 # @30k/starcomm-client
 
+## 0.3.0
+
+### Minor Changes
+
+- [#6](https://github.com/30k-inc/starcomm-client/pull/6) [`53316a3`](https://github.com/30k-inc/starcomm-client/commit/53316a336a8b848e2906406bd32e314b6d5c9cab) Thanks [@bombitmanbomb](https://github.com/bombitmanbomb)! - Audio Support
+
 ## 0.2.1
 
 ### Patch Changes
