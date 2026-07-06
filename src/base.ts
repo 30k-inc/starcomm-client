@@ -8,6 +8,8 @@ export interface StarCommsClientConfig {
   baseUrl: string;
   /** Owner API key (`scok_...`) for authenticated endpoints. */
   ownerApiKey: string;
+  /** Service key (`scsk_...`) for listen-only audio connections. */
+  serviceKey?: string;
   /** Shard token (`scsh_...`) for the `/debug` endpoint. */
   shardToken?: string;
   /** Request timeout in milliseconds. @default 10000 */
@@ -26,6 +28,7 @@ export interface StarCommsClientConfig {
 export class BaseClient {
   readonly baseUrl: string;
   readonly #ownerApiKey: string;
+  readonly #serviceKey?: string;
   readonly #shardToken?: string;
   readonly #timeoutMs: number;
   readonly #connectTimeoutMs: number;
@@ -34,6 +37,7 @@ export class BaseClient {
   constructor(config: StarCommsClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/+$/, "");
     this.#ownerApiKey = config.ownerApiKey;
+    this.#serviceKey = config.serviceKey;
     this.#shardToken = config.shardToken;
     this.#timeoutMs = config.timeoutMs ?? 10_000;
     this.#connectTimeoutMs = config.connectTimeoutMs ?? 30_000;
@@ -185,6 +189,11 @@ export class BaseClient {
   /** Returns the shard token for debug endpoints, or undefined if not configured. */
   getShardToken(): string | undefined {
     return this.#shardToken;
+  }
+
+  /** Returns the service key for audio listener connections, or undefined if not configured. */
+  getServiceKey(): string | undefined {
+    return this.#serviceKey;
   }
 
   /** Returns the owner API key for bearer-token authenticated requests. */
