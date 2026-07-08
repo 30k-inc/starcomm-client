@@ -1,5 +1,11 @@
 # @30k/starcomm-client
 
+## 0.4.0
+
+### Minor Changes
+
+- [#8](https://github.com/30k-inc/starcomm-client/pull/8) [`73cc5ee`](https://github.com/30k-inc/starcomm-client/commit/73cc5ee4033a583ca9222c56d15d40ee3a25ac73) Thanks [@bombitmanbomb](https://github.com/bombitmanbomb)! - URI Link support
+
 ## 0.3.0
 
 ### Minor Changes
