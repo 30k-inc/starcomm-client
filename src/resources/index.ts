@@ -10,3 +10,4 @@ export { ArchiveResource } from "./archive";
 export { StreamResource } from "./stream";
 export { PublicNetResource } from "./public-net";
 export { AudioResource } from "./audio";
+export { UriLinksResource } from "./uri-links";
