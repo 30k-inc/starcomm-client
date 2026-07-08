@@ -1,5 +1,11 @@
 # @30k/starcomm-client
 
+## 0.4.1
+
+### Patch Changes
+
+- [#10](https://github.com/30k-inc/starcomm-client/pull/10) [`21e0485`](https://github.com/30k-inc/starcomm-client/commit/21e0485544a7a5b9dbcf45e2d702ba5d3deb0531) Thanks [@bombitmanbomb](https://github.com/bombitmanbomb)! - Cleanup URI docs and handling
+
 ## 0.4.0
 
 ### Minor Changes
