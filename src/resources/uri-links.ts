@@ -1,11 +1,11 @@
 import type { BaseClient } from "../base";
 import type {
-  UriLinkCreatePayload,
+  UriLinkAction,
   UriLinkCreateResponse,
-  UriLinkResolvePayload,
   UriLinkResolveResponse,
   UriLinkRevokeResponse,
   UriLinksListResponse,
+  UriLinkTarget,
 } from "../types/uri-links";
 
 /**
@@ -18,19 +18,17 @@ import type {
  * const { links } = await client.uriLinks.list();
  *
  * // Create a "join guild" link that expires in 7 days
- * const { link, token } = await client.uriLinks.create({
- *   action: "join:guild",
- *   name: "Fleet Night Invite",
+ * const { link, token, directUri } = await client.uriLinks.create("join:guild", "Fleet Night Invite", {
  *   expiresDays: 7,
  *   maxUses: 50,
  * });
- * console.log(`starcomm://connect?id=${link.id}&token=${token}`);
+ * console.log(directUri); // starcomms://launch?shard=...&id=...&token=...
  *
  * // Revoke a link
  * await client.uriLinks.revoke(link.id);
  *
  * // Resolve a link (public, no auth required)
- * const resolved = await client.uriLinks.resolve({ id: link.id, token });
+ * const resolved = await client.uriLinks.resolve(link.id, token);
  * console.log(resolved.action, resolved.target);
  * ```
  *
@@ -49,16 +47,34 @@ export class UriLinksResource {
 
   /**
    * Create a new URI launch link. Requires `write:uri` scope.
-   * Creating an `join:org-link` action also requires `write:uri:org-link`.
-   * @returns The created link with the one-time secret token.
+   * Creating a `join:org-link` action also requires `write:uri:org-link`.
+   * @param action Action the link performs when resolved.
+   * @param name Human-readable name for the link.
+   * @param options Optional expiry, max uses, and target configuration.
+   * @returns The created link with the one-time secret token and launch URLs.
    */
-  async create(payload: UriLinkCreatePayload): Promise<UriLinkCreateResponse> {
-    return this.#http.ownerPost<UriLinkCreateResponse>("/api/v1/uri-links", payload);
+  async create(
+    action: UriLinkAction,
+    name?: string,
+    options?: {
+      target?: UriLinkTarget;
+      expiresAt?: string;
+      expiresMinutes?: number;
+      expiresDays?: number;
+      maxUses?: number;
+    },
+  ): Promise<UriLinkCreateResponse> {
+    return this.#http.ownerPost<UriLinkCreateResponse>("/api/v1/uri-links", {
+      action,
+      ...(name && { name }),
+      ...options,
+    });
   }
 
   /**
    * Revoke a URI link by ID. Requires `manage:uri` scope.
    * Revoked links return HTTP 410 when resolved.
+   * @param id The URI link ID to revoke.
    */
   async revoke(id: string): Promise<UriLinkRevokeResponse> {
     return this.#http.ownerPost<UriLinkRevokeResponse>("/api/v1/uri-links/revoke", { id });
@@ -67,8 +83,10 @@ export class UriLinksResource {
   /**
    * Resolve a URI link — returns the launch intent (action + target).
    * This endpoint is public (no owner key required). Increments use count.
+   * @param id The URI link ID.
+   * @param token The secret token issued at creation.
    */
-  async resolve(payload: UriLinkResolvePayload): Promise<UriLinkResolveResponse> {
-    return this.#http.ownerPost<UriLinkResolveResponse>("/api/v1/uri-links/resolve", payload);
+  async resolve(id: string, token: string): Promise<UriLinkResolveResponse> {
+    return this.#http.ownerPost<UriLinkResolveResponse>("/api/v1/uri-links/resolve", { id, token });
   }
 }

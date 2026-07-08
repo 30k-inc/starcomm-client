@@ -65,7 +65,7 @@ export interface UriLinkCreatePayload {
 }
 
 /**
- * Response from creating a URI link (includes the one-time token).
+ * Response from creating a URI link (includes the one-time token and launch URLs).
  * @category URI Links
  */
 export interface UriLinkCreateResponse {
@@ -74,6 +74,10 @@ export interface UriLinkCreateResponse {
   link: UriLink;
   /** One-time secret token — only returned on create. */
   token: string;
+  /** Full launch URL for the StarComms client (starcomms://launch?...). */
+  directUri: string;
+  /** Alternative launch URL (web-based). */
+  launchUrl: string;
   links: UriLink[];
 }
 
