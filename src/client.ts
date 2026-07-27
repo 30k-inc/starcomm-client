@@ -13,6 +13,7 @@ import {
   PublicNetResource,
   AudioResource,
   UriLinksResource,
+  ReadyChecksResource,
 } from "./resources";
 import type { OwnerEvent, OwnerEventMap, OwnerEventType } from "./types/stream";
 
@@ -115,6 +116,8 @@ export class StarCommsClient {
   readonly audio: AudioResource;
   /** URI launch link management (create, revoke, resolve). */
   readonly uriLinks: UriLinksResource;
+  /** Ready Check template and session management. */
+  readonly readyChecks: ReadyChecksResource;
 
   readonly #listeners = new Map<string, Set<(event: never) => void>>();
   readonly #wildcardListeners = new Set<WildcardHandler>();
@@ -140,6 +143,7 @@ export class StarCommsClient {
     this.publicNet = new PublicNetResource(http);
     this.audio = new AudioResource(http, config.serviceKey ?? "");
     this.uriLinks = new UriLinksResource(http);
+    this.readyChecks = new ReadyChecksResource(http);
 
     this.#reconnectOptions = {
       autoReconnect: true,

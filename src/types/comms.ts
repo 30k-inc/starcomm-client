@@ -1,4 +1,10 @@
 /**
+ * Supported ACARS alert severity types.
+ * @category Comms
+ */
+export type AcarsAlertType = "critical" | "emergency" | "non-emergency";
+
+/**
  * Result of an ACARS broadcast.
  * @category Comms
  */
@@ -8,6 +14,7 @@ export interface AcarsResult {
   id: string;
   routed: number;
   durationMs: number;
+  alertType: AcarsAlertType;
 }
 
 /**
