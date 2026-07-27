@@ -35,11 +35,17 @@ export interface SetFeaturesResponse {
 
 /**
  * A role-to-net auto-assignment rule.
+ * When a user with the specified role connects, they are auto-assigned to the listed nets.
  * @category Operations
  */
 export interface AutoAssignRule {
   roleId: string;
-  netId: number;
+  /** @deprecated Use `netIds` for multiple nets. Single net ID (kept for backward compat). */
+  netId?: number;
+  /** Array of numeric net IDs to auto-assign. */
+  netIds?: number[];
+  /** Array of net UIDs to auto-assign (alternative to netIds). */
+  netUids?: string[];
 }
 
 /**

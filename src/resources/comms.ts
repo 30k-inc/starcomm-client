@@ -1,5 +1,5 @@
 import type { BaseClient } from "../base";
-import type { AcarsResult, DisconnectClientResult } from "../types";
+import type { AcarsAlertType, AcarsResult, DisconnectClientResult } from "../types";
 
 /**
  * Communication operations (ACARS alerts, client disconnect).
@@ -14,11 +14,11 @@ export class CommsResource {
   /**
    * Broadcasts an ACARS text alert to all connected operators.
    * @param text Alert text (max 280 chars).
-   * @param options Optional sender name and display duration.
+   * @param options Optional sender name, display duration, and alert type.
    */
   async sendAcars(
     text: string,
-    options?: { senderName?: string; durationMs?: number },
+    options?: { senderName?: string; durationMs?: number; alertType?: AcarsAlertType },
   ): Promise<AcarsResult> {
     return this.#http.ownerPost<AcarsResult>("/api/v1/acars", {
       text,

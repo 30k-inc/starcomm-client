@@ -23,7 +23,12 @@ export type OwnerEventType =
   | "assignments.changed"
   | "config.changed"
   | "client.disconnected"
-  | "acars.sent";
+  | "acars.sent"
+  | "ready-check.configured"
+  | "ready-check.removed"
+  | "ready-check.started"
+  | "ready-check.response"
+  | "ready-check.completed";
 
 /**
  * Base shape shared by all SSE events.
@@ -138,12 +143,79 @@ export interface AcarsSentData {
   id: string;
   text: string;
   durationMs: number;
+  alertType: string;
   senderId: string;
   senderName: string;
   source: string;
   routed: number;
   at: string;
   keyId?: string;
+}
+
+/**
+ * Data for `ready-check.configured` event.
+ * @category Stream
+ */
+export interface ReadyCheckConfiguredData {
+  templateId: string;
+  keyId?: string;
+  senderId?: string;
+  senderName?: string;
+}
+
+/**
+ * Data for `ready-check.removed` event.
+ * @category Stream
+ */
+export interface ReadyCheckRemovedData {
+  templateId: string;
+  keyId?: string;
+  senderId?: string;
+  senderName?: string;
+}
+
+/**
+ * Data for `ready-check.started` event.
+ * @category Stream
+ */
+export interface ReadyCheckStartedData {
+  sessionId: string;
+  templateId: string;
+  initiatorId: string;
+  initiatorName: string;
+  source: string;
+  participantCount: number;
+  expiresAt: string;
+  keyId?: string;
+}
+
+/**
+ * Data for `ready-check.response` event.
+ * @category Stream
+ */
+export interface ReadyCheckResponseData {
+  sessionId: string;
+  userId: string;
+  name: string;
+  status: string;
+  respondedAt: string;
+}
+
+/**
+ * Data for `ready-check.completed` event.
+ * @category Stream
+ */
+export interface ReadyCheckCompletedData {
+  sessionId: string;
+  templateId: string;
+  summary: {
+    total: number;
+    pending: number;
+    ready: number;
+    declined: number;
+    afk: number;
+    allReady: boolean;
+  };
 }
 
 /**
@@ -160,7 +232,12 @@ export type OwnerEvent =
   | BaseOwnerEvent<"assignments.changed", AssignmentsChangedData>
   | BaseOwnerEvent<"config.changed", ConfigChangedData>
   | BaseOwnerEvent<"client.disconnected", ClientDisconnectedData>
-  | BaseOwnerEvent<"acars.sent", AcarsSentData>;
+  | BaseOwnerEvent<"acars.sent", AcarsSentData>
+  | BaseOwnerEvent<"ready-check.configured", ReadyCheckConfiguredData>
+  | BaseOwnerEvent<"ready-check.removed", ReadyCheckRemovedData>
+  | BaseOwnerEvent<"ready-check.started", ReadyCheckStartedData>
+  | BaseOwnerEvent<"ready-check.response", ReadyCheckResponseData>
+  | BaseOwnerEvent<"ready-check.completed", ReadyCheckCompletedData>;
 
 /**
  * Map from event type to its data shape, for typed `.on()` handlers.
@@ -177,4 +254,9 @@ export interface OwnerEventMap {
   "config.changed": BaseOwnerEvent<"config.changed", ConfigChangedData>;
   "client.disconnected": BaseOwnerEvent<"client.disconnected", ClientDisconnectedData>;
   "acars.sent": BaseOwnerEvent<"acars.sent", AcarsSentData>;
+  "ready-check.configured": BaseOwnerEvent<"ready-check.configured", ReadyCheckConfiguredData>;
+  "ready-check.removed": BaseOwnerEvent<"ready-check.removed", ReadyCheckRemovedData>;
+  "ready-check.started": BaseOwnerEvent<"ready-check.started", ReadyCheckStartedData>;
+  "ready-check.response": BaseOwnerEvent<"ready-check.response", ReadyCheckResponseData>;
+  "ready-check.completed": BaseOwnerEvent<"ready-check.completed", ReadyCheckCompletedData>;
 }

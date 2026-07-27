@@ -1,6 +1,6 @@
 # @30k/starcomm-client
 
-TypeScript client for the [Star Comms](https://starcomms.duckdns.org) shard Owner API. Zero dependencies, uses native `fetch` (Node 18+, Bun, Deno, browsers).
+TypeScript client for the [Star Comms](https://star-comms.org) shard Owner API. Zero dependencies, uses native `fetch` (Node 18+, Bun, Deno, browsers).
 
 ## Install
 
@@ -20,7 +20,7 @@ const client = new StarCommsClient({
 
 const status = await client.status.get();
 await client.assignments.assign("discord_user_id", 1);
-await client.comms.sendAcars({ text: "Fleet departing!" });
+await client.comms.sendAcars("Fleet departing!");
 ```
 
 ## Docs
@@ -108,6 +108,15 @@ client.on("user.joined", (event) => {
   console.log(event.data.displayName, "connected");
 });
 
+client.on("ready-check.started", (event) => {
+  console.log(`Ready check initiated by ${event.data.initiatorName}, ${event.data.participantCount} participants`);
+});
+
+client.on("ready-check.completed", (event) => {
+  const { summary } = event.data;
+  console.log(`Ready check done: ${summary.ready}/${summary.total} ready`);
+});
+
 // Lifecycle hooks
 client.onLifecycle("stream.disconnected", ({ reason }) => {
   console.warn("Stream lost:", reason);
@@ -128,6 +137,45 @@ await client.connect({
 client.disconnect();
 ```
 
+## Ready Checks
+
+20-second attendance polls targeting connected operators. Templates define reusable configs; sessions are live instances.
+
+```typescript
+// List templates
+const { readyChecks } = await client.readyChecks.list();
+
+// Create a template
+const { readyCheck } = await client.readyChecks.upsert({
+  message: "Fleet departing in 2 minutes — confirm ready",
+  color: "#34CD84",
+  target: { everyone: true },
+});
+
+// Start a session
+const { session, summary } = await client.readyChecks.start(readyCheck.id, "Fleet Commander");
+console.log(`${summary.total} participants, expires at ${session.expiresAt}`);
+
+// Poll session status
+const status = await client.readyChecks.getSession(session.id);
+console.log(`${status.summary.ready}/${status.summary.total} ready`);
+
+// Remove a template
+await client.readyChecks.remove(readyCheck.id);
+```
+
+## ACARS Alerts
+
+Broadcast short text alerts to all connected operators:
+
+```typescript
+await client.comms.sendAcars("Fleet departing in 60 seconds", {
+  senderName: "Fleet Commander",
+  durationMs: 8500,
+  alertType: "emergency", // "critical" | "emergency" | "non-emergency"
+});
+```
+
 ## Error Handling
 
 All methods throw `StarCommsError` on failure:
@@ -143,6 +191,26 @@ try {
   }
 }
 ```
+
+## SSE Event Types
+
+| Event | Data Fields |
+|-------|-------------|
+| `user.joined` | `userId`, `displayName`, `transport`, `nets` |
+| `user.left` | `userId`, `displayName`, `transport` |
+| `ptt.start` | `userId`, `displayName`, `netId` |
+| `ptt.stop` | `userId`, `displayName`, `netId`, `reason?` |
+| `operation.opened` | `open` |
+| `operation.closed` | `open` |
+| `assignments.changed` | `source?`, `action?`, `userId?`, `netId?`, `keyId?` |
+| `config.changed` | `keyId?`, `action?`, `uid?`, `preset?` |
+| `client.disconnected` | `userId`, `keyId`, `disconnected` |
+| `acars.sent` | `id`, `text`, `durationMs`, `alertType`, `senderId`, `senderName`, `source`, `routed` |
+| `ready-check.configured` | `templateId`, `keyId?` |
+| `ready-check.removed` | `templateId`, `keyId?` |
+| `ready-check.started` | `sessionId`, `templateId`, `initiatorId`, `initiatorName`, `participantCount`, `expiresAt` |
+| `ready-check.response` | `sessionId`, `userId`, `name`, `status`, `respondedAt` |
+| `ready-check.completed` | `sessionId`, `templateId`, `summary` |
 
 ## License
 

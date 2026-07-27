@@ -1,6 +1,7 @@
 import type { BaseClient } from "../base";
 import type {
   ShardHealthResponse,
+  ShardDebugResponse,
   ShardOpenApiResponse,
   ShardEmbedStatusResponse,
   ShardStatusResponse,
@@ -20,6 +21,15 @@ export class StatusResource {
   /** Checks shard liveness. Unauthenticated. */
   async getHealth(): Promise<ShardHealthResponse> {
     return this.#http.get<ShardHealthResponse>("/health");
+  }
+
+  /**
+   * Fetches the full shard debug snapshot. Requires the shard token.
+   * @throws {StarCommsError} If no shard token is configured.
+   */
+  async getDebug(): Promise<ShardDebugResponse> {
+    const token = this.#http.getShardToken();
+    return this.#http.get<ShardDebugResponse>("/debug", token);
   }
 
   /** Fetches the shard's OpenAPI specification document. Unauthenticated. */
