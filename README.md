@@ -212,6 +212,143 @@ try {
 | `ready-check.response` | `sessionId`, `userId`, `name`, `status`, `respondedAt` |
 | `ready-check.completed` | `sessionId`, `templateId`, `summary` |
 
+## Local Client (Desktop Companion)
+
+A standalone WebSocket client for communicating with the StarComm desktop application's Mobile Remote interface. Completely independent from the shard Owner API client — no API keys required, just the pairing token from StarComm's settings.
+
+### Setup
+
+In StarComm desktop: **Settings → Mobile Remote → Enable APK companion link**. Note the LAN control port and pairing token.
+
+### Usage
+
+```typescript
+import { StarCommsLocalClient } from "@30k/starcomm-client";
+
+const local = new StarCommsLocalClient({
+  token: "your_pairing_token",  // from StarComm settings
+  // host: "127.0.0.1",         // default; use LAN IP for remote access
+  // port: 8798,                // default; matches StarComm's "LAN control port"
+  debug: true,                  // enable console logging (optional)
+});
+
+// Listen for state updates
+local.on("snapshot", (snapshot) => {
+  console.log(`Connected as ${snapshot.displayName}`);
+  console.log(`Guild: ${snapshot.guildName}`);
+  console.log(`Channels: ${snapshot.channels.length}`);
+});
+
+local.on("error", (err) => {
+  console.error("StarComm error:", err.message);
+});
+
+// Lifecycle events
+local.onLifecycle("connected", () => console.log("Connected"));
+local.onLifecycle("disconnected", ({ reason }) => console.warn("Disconnected:", reason));
+local.onLifecycle("reconnecting", ({ attempt }) => console.log("Reconnecting...", attempt));
+
+// Connect (returns a Promise — resolves when socket is open)
+await local.connect();
+
+// Access the latest snapshot at any time
+console.log(local.snapshot?.channels);
+```
+
+### PTT (Push-to-Talk)
+
+Three modes available:
+
+```typescript
+// ptt.start — momentary (like holding a physical PTT button)
+// Releases automatically if no keepalive is sent.
+local.pttStart(netId);
+
+// ptt.hold — toggle/latch mode (tap to lock on, tap again or stop to release)
+// Use this for programmatic PTT that should stay active.
+local.pttHold(netId);
+
+// ptt.stop — release PTT on a net
+local.pttStop(netId);
+```
+
+For sustained transmission, use `pttHold()` + `pttStop()`:
+
+```typescript
+local.pttHold(255);      // latch transmit on net 255
+// ... do things ...
+local.pttStop(255);      // release
+```
+
+### Admin Commands
+
+Only work when the connected user has admin access (`snapshot.access.isAdmin === true`):
+
+```typescript
+// Assign/unassign a user to a net
+local.adminAssign("userId", netId);
+local.adminUnassign("userId", netId);
+
+// Disconnect a user
+local.adminDisconnect("userId");
+
+// Broadcast an ACARS alert
+local.adminAcars("Fleet departing in 60 seconds");
+```
+
+### Config
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `token` | `string` | — | Pairing token (required) |
+| `host` | `string?` | `"127.0.0.1"` | StarComm host IP |
+| `port` | `number?` | `8798` | LAN control port |
+| `autoReconnect` | `boolean?` | `true` | Auto-reconnect on disconnect |
+| `initialDelayMs` | `number?` | `1000` | First reconnect delay |
+| `maxDelayMs` | `number?` | `15000` | Max reconnect delay |
+| `maxAttempts` | `number?` | `Infinity` | Max reconnect attempts |
+| `debug` | `boolean?` | `false` | Log all messages to console |
+
+### Snapshot Structure
+
+The snapshot is sent immediately on connection and again whenever state changes:
+
+```typescript
+interface LocalSnapshot {
+  type: "snapshot";
+  protocol: string;           // "starcomms-client-companion"
+  protocolVersion: number;    // 1
+  app: string;                // "star-comms-client"
+  version: string;            // e.g. "1.50.3"
+  connected: boolean;
+  pairedDevices: number;
+  userId: string;             // Discord user ID
+  displayName: string;
+  guildId: string;
+  guildName: string;
+  operationOpen: boolean;
+  socketStatus: string;       // "connected" | "disconnected" | ...
+  activeNetId: number;        // -1 = none
+  activeGuildId: string;
+  relay: { guildId, guildName, voiceEndpoint, udpVoiceEndpoint, shardName, shardActive, operationOpen };
+  access: { isAdmin, isFullAdmin, canCustomizeTheme };
+  ptt: { active, netId, channel, color };
+  overlay: { transmitting, transmitChannel, transmitColor, tag, language, labels, receiving[] };
+  receiving: [];              // users currently transmitting
+  channels: Channel[];        // all visible nets with members, volume, mute state
+  admin?: { canAssign, canManageNets, canSendAcars, acarsEnabled, acarsDurationMs, streamerMode, users[], channels[] };
+}
+```
+
+### Health Check
+
+Before connecting via WebSocket, you can verify reachability with a plain HTTP call:
+
+```
+GET http://<host>:<port>/health
+→ {"ok":true,"app":"star-comms-local-control","port":8798,"clients":1}
+```
+
 ## License
 
 MIT

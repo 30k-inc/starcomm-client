@@ -1,5 +1,12 @@
 export { StarCommsClient } from "./client";
 export type { WildcardHandler, ReconnectOptions, LifecycleHandler, LifecycleEventType } from "./client";
+export { StarCommsLocalClient } from "./local-client";
+export type {
+  StarCommsLocalClientConfig,
+  LocalLifecycleEventType,
+  LocalLifecycleDetail,
+  LocalLifecycleHandler,
+} from "./local-client";
 export { StarCommsError } from "./error";
 export { BaseClient } from "./base";
 export type { StarCommsClientConfig } from "./base";

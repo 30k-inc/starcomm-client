@@ -1,5 +1,29 @@
 # @30k/starcomm-client
 
+## 0.6.0
+
+### Minor Changes
+
+- ### New: Local Client (Desktop Companion)
+
+  Added `StarCommsLocalClient` — a standalone WebSocket client for communicating with the StarComm desktop application's Mobile Remote interface. Completely independent from the shard Owner API client.
+
+  - Connects to `ws://<host>:<port>/control?token=<pairing_token>`
+  - Typed snapshot events with full protocol coverage (channels, PTT state, overlay, admin panel)
+  - Three PTT modes:
+    - `pttStart(netId)` — momentary (releases when not sustained)
+    - `pttHold(netId)` — toggle/latch (stays active until `pttStop`)
+    - `pttStop(netId)` — release transmission
+  - Admin commands: `adminAssign`, `adminUnassign`, `adminDisconnect`, `adminAcars`
+  - Auto-reconnect with exponential backoff
+  - `debug: true` option for console logging
+  - `connect()` returns a Promise (resolves when socket is open)
+  - Snapshot cached on `local.snapshot` property
+
+  ### New: `ws` dependency
+
+  Added `ws` package for reliable WebSocket connections in Node.js (Node's built-in undici WebSocket has compatibility issues with the StarComm server's HTTP upgrade handling).
+
 ## 0.5.0
 
 ### Minor Changes
