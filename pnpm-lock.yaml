@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ws:
+        specifier: ^8.21.3
+        version: 8.21.3
     devDependencies:
       '@changesets/changelog-github':
         specifier: ^0.7.0
@@ -14,6 +18,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.31.0
         version: 2.31.0
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       oxfmt:
         specifier: ^0.56.0
         version: 0.56.0
@@ -670,6 +677,9 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
   acorn@8.17.0:
     resolution: {integrity: sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg==}
     engines: {node: '>=0.4.0'}
@@ -1241,6 +1251,18 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
+  ws@8.21.3:
+    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   yaml@2.9.0:
     resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
     engines: {node: '>= 14.6'}
@@ -1749,6 +1771,10 @@ snapshots:
   '@types/node@12.20.55': {}
 
   '@types/unist@3.0.3': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 12.20.55
 
   acorn@8.17.0: {}
 
@@ -2302,5 +2328,7 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
+
+  ws@8.21.3: {}
 
   yaml@2.9.0: {}

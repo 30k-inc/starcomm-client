@@ -9,6 +9,7 @@
   "defaultCategory": "Client",
   "categoryOrder": [
     "Client",
+    "Local Client",
     "Resources",
     "Status",
     "Assignments",
