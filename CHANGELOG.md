@@ -1,5 +1,11 @@
 # @30k/starcomm-client
 
+## 0.6.1
+
+### Patch Changes
+
+- [#15](https://github.com/30k-inc/starcomm-client/pull/15) [`acfba68`](https://github.com/30k-inc/starcomm-client/commit/acfba6842b316d6919a6f5ba2a04d6267340c40b) Thanks [@bombitmanbomb](https://github.com/bombitmanbomb)! - Add per-property JSDoc to all public type/interface definitions so the generated TypeDoc docs describe every field. Documentation-only; no runtime or type-signature changes.
+
 ## 0.6.0
 
 ### Minor Changes
