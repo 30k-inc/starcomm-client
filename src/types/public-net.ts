@@ -5,8 +5,11 @@ import type { PublicNetState, ShardFeatures } from "./common";
  * @category Public Net
  */
 export interface PublicNetStatusResponse {
+  /** Whether the request succeeded. */
   ok: boolean;
+  /** Discord guild identifier the status applies to. */
   guildId: string;
+  /** Current public net feature state. */
   publicNet: PublicNetState;
 }
 
@@ -15,9 +18,14 @@ export interface PublicNetStatusResponse {
  * @category Public Net
  */
 export interface PublicNetActionResponse {
+  /** Whether the action succeeded. */
   ok: boolean;
+  /** Discord guild identifier the action applied to. */
   guildId: string;
+  /** Name of the action performed (show, hide, remove, restore). */
   action: string;
+  /** Shard feature flags after the action. */
   features: ShardFeatures;
+  /** Public net feature state after the action. */
   publicNet: PublicNetState;
 }

@@ -5,9 +5,13 @@ import type { PublicNetState, ShardFeatures } from "./common";
  * @category Operations
  */
 export interface SetOperationResponse {
+  /** Whether the request succeeded. */
   ok: boolean;
+  /** Discord guild ID the operation applies to. */
   guildId: string;
+  /** Discriminator identifying this as an operation-set response. */
   action: "operation.set";
+  /** Whether the operation is now open. */
   open: boolean;
 }
 
@@ -16,8 +20,11 @@ export interface SetOperationResponse {
  * @category Operations
  */
 export interface ShardFeaturesResponse {
+  /** Whether the request succeeded. */
   ok: boolean;
+  /** Discord guild ID the features belong to. */
   guildId: string;
+  /** Current shard feature configuration. */
   features: ShardFeatures;
 }
 
@@ -26,10 +33,15 @@ export interface ShardFeaturesResponse {
  * @category Operations
  */
 export interface SetFeaturesResponse {
+  /** Whether the request succeeded. */
   ok: boolean;
+  /** Discord guild ID the features belong to. */
   guildId: string;
+  /** Discriminator identifying this as a features-set response. */
   action: "features.set";
+  /** Updated shard feature configuration. */
   features: ShardFeatures;
+  /** Resulting public net state after the update. */
   publicNet: PublicNetState;
 }
 
@@ -39,6 +51,7 @@ export interface SetFeaturesResponse {
  * @category Operations
  */
 export interface AutoAssignRule {
+  /** Discord role ID that triggers this rule. */
   roleId: string;
   /** @deprecated Use `netIds` for multiple nets. Single net ID (kept for backward compat). */
   netId?: number;
@@ -53,8 +66,11 @@ export interface AutoAssignRule {
  * @category Operations
  */
 export interface ShardRulesResponse {
+  /** Whether the request succeeded. */
   ok: boolean;
+  /** Discord guild ID the rules belong to. */
   guildId: string;
+  /** Current list of auto-assignment rules. */
   rules: AutoAssignRule[];
 }
 
@@ -63,8 +79,12 @@ export interface ShardRulesResponse {
  * @category Operations
  */
 export interface SetRulesResponse {
+  /** Whether the request succeeded. */
   ok: boolean;
+  /** Discord guild ID the rules belong to. */
   guildId: string;
+  /** Discriminator identifying this as a rules-set response. */
   action: "rules.set";
+  /** Replaced list of auto-assignment rules. */
   rules: AutoAssignRule[];
 }

@@ -3,8 +3,11 @@
  * @category Common
  */
 export interface OrgLinkFeature {
+  /** Whether the org link feature is enabled. */
   enabled: boolean;
+  /** Role IDs permitted to use the org link. */
   roleIds: string[];
+  /** UID of the net the org is linked to. */
   netUid: string;
 }
 
@@ -13,15 +16,24 @@ export interface OrgLinkFeature {
  * @category Common
  */
 export interface ShardFeatures {
+  /** Maximum number of nets allowed on the shard. */
   maxNets: number;
+  /** Whether global push-to-talk is enabled. */
   globalPttEnabled: boolean;
+  /** Whether ACARS is enabled. */
   acarsEnabled: boolean;
+  /** Whether ready checks are enabled. */
   readyCheckEnabled: boolean;
+  /** Public net configuration. */
   publicNet: {
+    /** Whether the public net is enabled. */
     enabled: boolean;
+    /** Display name of the public net. */
     name: string;
+    /** Role IDs permitted to access the public net. */
     roleIds: string[];
   };
+  /** Org link feature configuration. */
   orgLink: OrgLinkFeature;
 }
 
@@ -30,8 +42,11 @@ export interface ShardFeatures {
  * @category Common
  */
 export interface PublicNetState {
+  /** Whether the public net is enabled. */
   enabled: boolean;
+  /** Display name of the public net. */
   name: string;
+  /** Role IDs permitted to access the public net. */
   roleIds: string[];
 }
 
@@ -40,5 +55,6 @@ export interface PublicNetState {
  * @category Common
  */
 export interface ShardErrorResponse {
+  /** Human-readable error message. */
   error: string;
 }

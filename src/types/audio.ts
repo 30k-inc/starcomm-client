@@ -60,12 +60,19 @@ export type AudioLifecycleEventType =
  * @category Audio
  */
 export interface AudioEventMap {
+  /** Emitted when a decoded audio frame is received. */
   audio: AudioFrame;
+  /** Emitted when an operator starts transmitting (PTT down). */
   "ptt.start": AudioPttEvent;
+  /** Emitted when an operator stops transmitting (PTT up). */
   "ptt.stop": AudioPttEvent;
+  /** Emitted when the listener connects to a guild. */
   connected: { guildId: string };
+  /** Emitted when the connection is lost, with the disconnect reason. */
   disconnected: { reason: string };
+  /** Emitted when the listener reconnects, with the attempt count. */
   reconnected: { attempt: number };
+  /** Emitted on a listener error, with the failure reason. */
   error: { reason: string };
 }
 
