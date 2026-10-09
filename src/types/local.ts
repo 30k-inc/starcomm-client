@@ -252,6 +252,8 @@ export interface LocalAdminChannel {
   name: string;
   /** Identifiers of the users in the channel. */
   userIds: string[];
+  /** Identifiers of the assignment groups placed on this channel. Added in shard v1.0.116. */
+  groupIds: string[];
 }
 
 // ─── Error ────────────────────────────────────────────────────────────────────

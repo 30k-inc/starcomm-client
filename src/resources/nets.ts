@@ -50,6 +50,8 @@ export class NetsResource {
 
   /**
    * Removes a net by numeric ID.
+   *
+   * As of shard v1.0.116 this permanently deletes the net (it is no longer archived).
    * @param netId Numeric net identifier.
    * @param netUid Net UID (alternative to netId).
    */
@@ -65,8 +67,6 @@ export class NetsResource {
    * @param ref Net UID (e.g., `"net_abc123"`) or numeric ID as string.
    */
   async removeByRef(ref: string): Promise<NetRemoveResponse> {
-    return this.#http.ownerDelete<NetRemoveResponse>(
-      `/api/v1/nets/${encodeURIComponent(ref)}`,
-    );
+    return this.#http.ownerDelete<NetRemoveResponse>(`/api/v1/nets/${encodeURIComponent(ref)}`);
   }
 }

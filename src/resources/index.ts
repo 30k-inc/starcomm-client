@@ -1,5 +1,6 @@
 export { StatusResource } from "./status";
 export { AssignmentsResource } from "./assignments";
+export { GroupsResource } from "./groups";
 export { NetsResource } from "./nets";
 export { OperationsResource } from "./operations";
 export { PresetsResource } from "./presets";

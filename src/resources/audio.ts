@@ -117,7 +117,8 @@ export class AudioResource {
    */
   async listen(options: AudioListenOptions): Promise<void> {
     if (this.#consuming) throw new Error("Audio listener is already active. Call stop() first.");
-    if (!this.#serviceKey) throw new Error("serviceKey (scsk_...) is required for audio listening.");
+    if (!this.#serviceKey)
+      throw new Error("serviceKey (scsk_...) is required for audio listening.");
 
     this.#guildId = options.guildId;
     this.#nets = new Set(options.nets ?? []);
@@ -205,7 +206,9 @@ export class AudioResource {
     const wsUrl = this.#http.baseUrl.replace(/^http/, "ws") + "/ws";
 
     return new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(wsUrl, { headers: { authorization: `Bearer ${this.#serviceKey}` } } as any);
+      const ws = new WebSocket(wsUrl, {
+        headers: { authorization: `Bearer ${this.#serviceKey}` },
+      } as any);
       this.#ws = ws;
 
       let joined = false;
@@ -349,7 +352,10 @@ export class AudioResource {
     // Server envelope: byte 0 = netId, bytes 1..20 = senderId (20-byte zero-padded ASCII),
     // bytes 21..24 = SCOP magic, bytes 25..26 = sequence, bytes 27+ = Opus
     const netId = buf[0];
-    const userId = new TextDecoder().decode(buf.slice(1, 1 + SENDER_ID_LENGTH)).replace(/\0/g, "").replace(/^0+/, "");
+    const userId = new TextDecoder()
+      .decode(buf.slice(1, 1 + SENDER_ID_LENGTH))
+      .replace(/\0/g, "")
+      .replace(/^0+/, "");
     const opus = buf.slice(1 + SENDER_ID_LENGTH + SCOP_HEADER_LENGTH);
 
     if (opus.byteLength === 0) return;
