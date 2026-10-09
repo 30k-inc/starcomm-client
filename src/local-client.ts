@@ -374,9 +374,10 @@ export class StarCommsLocalClient {
     this.#ws.on("unexpected-response", (_req, res) => {
       const status = res.statusCode ?? 0;
       this.#log("socket", `unexpected HTTP response: ${status}`);
-      const msg = status === 401
-        ? "Authentication failed (401) — check your pairing token"
-        : `Server returned HTTP ${status} instead of upgrading to WebSocket`;
+      const msg =
+        status === 401
+          ? "Authentication failed (401) — check your pairing token"
+          : `Server returned HTTP ${status} instead of upgrading to WebSocket`;
       this.#emitLifecycle("error", { reason: msg });
 
       if (this.#connectReject) {

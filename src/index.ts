@@ -1,5 +1,10 @@
 export { StarCommsClient } from "./client";
-export type { WildcardHandler, ReconnectOptions, LifecycleHandler, LifecycleEventType } from "./client";
+export type {
+  WildcardHandler,
+  ReconnectOptions,
+  LifecycleHandler,
+  LifecycleEventType,
+} from "./client";
 export { StarCommsLocalClient } from "./local-client";
 export type {
   StarCommsLocalClientConfig,
@@ -13,6 +18,7 @@ export type { StarCommsClientConfig } from "./base";
 export {
   StatusResource,
   AssignmentsResource,
+  GroupsResource,
   NetsResource,
   OperationsResource,
   PresetsResource,

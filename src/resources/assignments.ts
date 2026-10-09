@@ -55,7 +55,11 @@ export class AssignmentsResource {
    * @param netId Numeric net identifier.
    * @param ttlMs Time-to-live in milliseconds (min 15s, max 24h). Defaults to 5 minutes.
    */
-  async temporary(userId: string, netId: number, ttlMs?: number): Promise<TemporaryAssignmentResult> {
+  async temporary(
+    userId: string,
+    netId: number,
+    ttlMs?: number,
+  ): Promise<TemporaryAssignmentResult> {
     return this.#http.ownerPost<TemporaryAssignmentResult>("/api/v1/assignments/temporary", {
       userId,
       netId,

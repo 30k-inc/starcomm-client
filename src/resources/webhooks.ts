@@ -27,7 +27,11 @@ export class WebhooksResource {
    * @param secret Optional shared secret for webhook signature verification.
    * @returns The created webhook entry and its generated secret.
    */
-  async register(url: string, events: string[], secret?: string): Promise<ShardWebhookRegisterResponse> {
+  async register(
+    url: string,
+    events: string[],
+    secret?: string,
+  ): Promise<ShardWebhookRegisterResponse> {
     return this.#http.ownerPost<ShardWebhookRegisterResponse>("/api/v1/webhooks", {
       url,
       events,

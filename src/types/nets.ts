@@ -40,6 +40,11 @@ export interface NetRenameResponse {
 
 /**
  * Response from removing a net.
+ *
+ * As of shard v1.0.116 `/nets/remove` deletes the net **permanently** rather than
+ * archiving it, so `archived` is now `false` and `entry` is omitted. The field
+ * remains for backward compatibility with older shard versions that archived on
+ * removal.
  * @category Nets
  */
 export interface NetRemoveResponse {
@@ -53,8 +58,8 @@ export interface NetRemoveResponse {
   netId: number;
   /** Unique string identifier of the removed net. */
   netUid: string;
-  /** Whether the net was archived on removal. */
+  /** Whether the net was archived on removal. Always `false` on shard v1.0.116+ (permanent delete). */
   archived: boolean;
-  /** Archive entry recording the removed net. */
-  entry: ArchiveEntry;
+  /** Archive entry recording the removed net. Omitted on shard v1.0.116+ (not archived). */
+  entry?: ArchiveEntry;
 }

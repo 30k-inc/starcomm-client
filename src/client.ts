@@ -2,6 +2,7 @@ import { BaseClient, type StarCommsClientConfig } from "./base";
 import {
   StatusResource,
   AssignmentsResource,
+  GroupsResource,
   NetsResource,
   OperationsResource,
   PresetsResource,
@@ -94,6 +95,8 @@ export class StarCommsClient {
   readonly status: StatusResource;
   /** Net assignment operations (assign, unassign, bulk, temporary). */
   readonly assignments: AssignmentsResource;
+  /** Assignment group management (list, create/update, delete, place on nets). */
+  readonly groups: GroupsResource;
   /** Voice net management (create, rename, remove). */
   readonly nets: NetsResource;
   /** Operation lifecycle, feature flags, and auto-assignment rules. */
@@ -132,6 +135,7 @@ export class StarCommsClient {
 
     this.status = new StatusResource(http);
     this.assignments = new AssignmentsResource(http);
+    this.groups = new GroupsResource(http);
     this.nets = new NetsResource(http);
     this.operations = new OperationsResource(http);
     this.presets = new PresetsResource(http);
